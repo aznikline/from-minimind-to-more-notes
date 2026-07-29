@@ -57,7 +57,7 @@ $$
    - 指针跳到回复末尾，继续找下一轮（支持多轮对话）。
 7. 返回 `(input_ids_tensor, labels_tensor)`。
 
-**训练循环（train_epoch）**：
+**训练循环（train\_epoch）**：
 
 1. 取 `(input_ids, labels)` → 搬到 GPU。
 2. 动态学习率：`get_lr(epoch*iters+step, total, base_lr)`（warmup + cosine decay）。
@@ -98,7 +98,7 @@ $$
 - **特征码硬编码脆弱**：`'assistant\n'`/`'\n'` 强依赖 ChatML 具体渲染，且无运行时校验；换 tokenizer/template 即静默失效（loss=0）。可加 assert：训练前统计非 -100 的 label 占比，过低即报错。
 - **截断风险**：`input_ids[:max_length]` 直接截断，可能把多轮对话切在 user 段中间，导致该轮 assistant 段缺失或 mask 错位；未做"按对话边界截断"的保护。
 - **单轮线性扫描 O(n)**：小模型够用，但超长序列可优化为 KMP/预记录区间。
-- **未讨论 LoRA**：标题 full_sft 暗示全参数，但未对比 LoRA，读者需自行补足。
+- **未讨论 LoRA**：标题 full\_sft 暗示全参数，但未对比 LoRA，读者需自行补足。
 - **超参缺乏解释**：`lr=1e-6`、`epochs=2`、`grad_clip=1.0` 是经验值，未给来源/消融。
 - **作者 RL 思考略单薄**：仅引一篇论文即下"RL 只提升采样效率"结论，样本偏少；但作为启发式提醒（"对 RL 认识有限"）有价值。
 - **亮点**：调试代码、风险提示、DDP/compile 取模细节、半精度落盘——工程严谨度高于多数教程。
