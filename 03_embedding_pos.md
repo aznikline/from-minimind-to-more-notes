@@ -125,7 +125,7 @@ NTK-by-parts(频域分段斜坡混合) + Temperature Scaling(熵修正) → PPL 
 - **RoPE vs ALiBi 对比** —— RoPE 乘法旋转、语义正交保模长、KV Cache 完美兼容、自然长程衰减;ALiBi 偏置减法、强制线性衰减、KV Cache 不友好但外推极强。
 - **Llama 3 为何把 base 提到 5e5?** —— 拉长低频波长,预训练即学超长依赖,衰减曲线平缓,为 1M 扩展铺数学基础。
 - **DeepSeek-V2 为何要解耦 RoPE?** —— MLA 低秩压缩会破坏旋转的语义空间,故拆 Content(压缩、不加 RoPE)与 RoPE Vector(不压缩、直接旋转),Score 相加。
-- **rotate_half 为何等价复数旋转?** —— `[a,b,c,d]→[-c,-d,a,b]` 实现了实部/虚部交换与取反,使 $x\cos\theta+\text{rotate\_half}(x)\sin\theta$ 等价 $x\cdot e^{i\theta}$。
+- **rotate\_half 为何等价复数旋转?** —— `[a,b,c,d]→[-c,-d,a,b]` 实现了实部/虚部交换与取反,使 $x\cos\theta+\text{rotate\_half}(x)\sin\theta$ 等价 $x\cdot e^{i\theta}$。
 
 ## 批判性批注
 
