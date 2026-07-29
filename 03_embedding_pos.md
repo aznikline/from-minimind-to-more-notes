@@ -66,21 +66,21 @@ $s=1$ 时无变化,$s$ 大时 logits 数值升高、softmax 更尖锐,修正分�
 
 ## 关键算法/流程
 
-### RoPE 复数旋转的等价实数实现 (rotate_half 技巧)
+### RoPE 复数旋转的等价实数实现 (rotate\_half 技巧)
 对向量 $\mathbf{x}=[x_0,x_1,\dots,x_{d-1}]$,把后半部分取反交换得 $\text{rotate\_half}(\mathbf{x})=[-x_{d/2},\dots,-x_{d-1},x_0,\dots,x_{d/2-1}]$,则复数旋转 $x\cdot e^{i\theta}$ 等价为:
 $$R_\theta(\mathbf{x})=\mathbf{x}\odot\cos\theta+\text{rotate\_half}(\mathbf{x})\odot\sin\theta$$
 这样把分块对角矩阵乘法化成逐元素乘加,GPU 友好。
 
-### precompute_freqs_cis 流程 (minimind)
+### precompute\_freqs\_cis 流程 (minimind)
 1. 频率向量 $\text{freqs}_i=1/\text{base}^{2i/d}$,$i=0,2,\dots,d-2$;
 2. 若启用 YaRN 且 $end/orig\_max>1$:用 $\text{inv\_dim}(b)=\frac{d\log(orig\_max/(b\cdot2\pi))}{2\log(\text{base})}$ 算出低/高频边界 low/high,得斜坡 $\gamma$,应用 $\text{freqs}\leftarrow\text{freqs}\cdot(1-\gamma+\gamma/factor)$;
 3. 位置索引 $t=[0,\dots,end-1]$,外积 $\text{freqs}=\text{outer}(t,\text{freqs})$ 得 $[end, d/2]$;
-4. cos/sin 各复制一倍拼到 $dim$ 维,乘 attn_factor(温度缩放)返回。
+4. cos/sin 各复制一倍拼到 $dim$ 维,乘 attn\_factor(温度缩放)返回。
 
-### apply_rotary_pos_emb 流程
-1. 定义 rotate_half(后半取反前移);
-2. cos/sin 在 unsqueeze_dim 上插维以广播到 q/k 的 [batch, seq, heads, head_dim];
-3. q_embed = q*cos + rotate_half(q)*sin;k_embed 同理;返回。
+### apply\_rotary\_pos\_emb 流程
+1. 定义 rotate\_half(后半取反前移);
+2. cos/sin 在 unsqueeze\_dim 上插维以广播到 q/k 的 [batch, seq, heads, head\_dim];
+3. q\_embed = q*cos + rotate\_half(q)*sin;k\_embed 同理;返回。
 
 ### YaRN 整体方案
 NTK-by-parts(频域分段斜坡混合) + Temperature Scaling(熵修正) → PPL 与 Passkey Retrieval 双优,0.1% 微调 4k→128k。
@@ -93,7 +93,7 @@ NTK-by-parts(频域分段斜坡混合) + Temperature Scaling(熵修正) → PPL 
   - `freqs = 1.0 / (rope_base ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))` —— 只用偶数索引生成 $d/2$ 个频率,符合 RoPE 二维分块。
   - YaRN 分支:`inv_dim(b)` 由波长 $\lambda=2\pi/f$ 反推维度索引;`low/high` 划定快慢频边界;`ramp = clamp((arange(d/2)-low)/(high-low), 0, 1)` 即 $\gamma(d)$;`freqs = freqs * (1 - ramp + ramp / factor)` 实现 $h(\theta)=(1-\gamma)\theta/s+\gamma\theta$。
   - `attn_factor` 直接乘到 cos/sin 上,对应温度缩放(代码里默认 1.0,由配置注入)。
-  - `torch.cat([cos, cos], dim=-1)` 把 $d/2$ 复制到 $d$,配合 rotate_half 的"后半取反前移"布局。
+  - `torch.cat([cos, cos], dim=-1)` 把 $d/2$ 复制到 $d$,配合 rotate\_half 的"后半取反前移"布局。
 
 - **`apply_rotary_pos_emb(q, k, cos, sin, unsqueeze_dim=1)`**
   - `rotate_half(x) = torch.cat((-x[..., d//2:], x[..., :d//2]), dim=-1)` —— `[a,b,c,d]→[-c,-d,a,b]`,实现复数旋转的虚部操作。

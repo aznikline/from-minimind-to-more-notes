@@ -172,7 +172,7 @@ mindmap
         反移植 PPO 工程技巧
     RL-Free 隐式偏好
       DPO
-        消去 Z(x) 转分类
+        "消去 Z(x) 转分类"
         稳定 但离线/模式坍塌
       IPO
         MSE 回归固定目标 防过拟合

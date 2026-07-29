@@ -276,8 +276,8 @@ mindmap
       lm_checkpoint
         DDP 解包 .module
         compile 解包 _orig_mod
-        half().cpu()
-        .tmp→os.replace 原子保存
+        "half().cpu()"
+        ".tmp→os.replace 原子保存"
         resume: model+opt+scaler+epoch+step+ws
         GPU数变化 step 换算
       SkipBatchSampler
@@ -300,8 +300,8 @@ mindmap
         loss/=accum
         scaler.scale.backward
         unscale→clip→step→update
-        zero_grad(set_to_none)
-        定期 save(rank0)
+        "zero_grad(set_to_none)"
+        "定期 save(rank0)"
         del 变量
       断点续训
         SkipBatchSampler

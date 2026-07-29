@@ -25,7 +25,7 @@ mindmap
         WordPiece PMI似然度
         Unigram EM+Viterbi剪枝
         字节级BPE消灭OOV
-        bytes_to_unicode 空格->Ġ
+        bytes_to_unicode 空格→Ġ
         特殊Token正则抠出
         Glitch Tokens 未训练Embedding
       Minimind设计目录
@@ -41,19 +41,19 @@ mindmap
         正弦APE 多尺度时钟
         ALiBi 线性衰减外推之王
         RoPE 复数旋转 只剩m-n
-        PI/NTK/YaRN 频域外推4k->128k
+        PI/NTK/YaRN 频域外推4k→128k
         M-RoPE 多模态时空
         DeepSeek解耦RoPE
     架构篇 Architecture
       归一化技术
-        BN->LN->RMSNorm
+        BN→LN→RMSNorm
         Pre-Norm vs Post-Norm
         DeepNorm 1000层有界更新
         QK-Norm 治熵坍塌
         Sandwich/NormFormer
       KVCache与FlashAttn
-        KV Cache 空间换时间 O(L²)->O(L)
-        MHA->MQA->GQA->MLA
+        "KV Cache 空间换时间 O(L²)→O(L)"
+        MHA→MQA→GQA→MLA
         FlashAttention Tiling IO感知
         FlashDecoding Split-K
         PagedAttention 显存分页
@@ -81,7 +81,7 @@ mindmap
     算法篇 Algorithms
       RL概览
         MDP/策略/价值/优势
-        RLHF三阶段 SFT->RM->PPO
+        RLHF三阶段 SFT→RM→PPO
         演进主线 去Critic去RM粒度精细
         TRPO信任区域 二阶海森
         PPO Clipped 一阶工业标准
@@ -147,7 +147,7 @@ mindmap
 flowchart TD
     subgraph F["基石 Foundations"]
         T[Tokenizer<br/>BPE分词]
-        E[Embedding<br/>Token ID->稠密向量]
+        E[Embedding<br/>Token ID→稠密向量]
         P[位置编码<br/>RoPE旋转注入相对位置]
     end
     subgraph A["架构 Architecture"]

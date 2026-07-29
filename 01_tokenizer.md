@@ -192,8 +192,8 @@ mindmap
       正则预分词
         GPT-2 缩写/空格/标点
         GPT-4 大小写不敏感 数字2位 空格合并
-      bytes_to_unicode 空格->Ġ 全射
-      词表 50k->100k->128k
+      bytes_to_unicode 空格→Ġ 全射
+      词表 50k→100k→128k
     工程要点
       特殊Token 正则抠出
       Glitch Tokens 未训练Embedding
