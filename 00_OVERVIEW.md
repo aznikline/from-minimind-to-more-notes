@@ -52,7 +52,7 @@ mindmap
         QK-Norm 治熵坍塌
         Sandwich/NormFormer
       KVCache与FlashAttn
-        KV Cache 空间换时间 O(L^2)→O(L)
+        KV Cache 空间换时间 O²→O
         MHA→MQA→GQA→MLA
         FlashAttention Tiling IO感知
         FlashDecoding Split-K
