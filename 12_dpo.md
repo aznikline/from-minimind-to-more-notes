@@ -119,29 +119,29 @@ $$\hat{r}(x,y) = \beta \log \frac{\pi_\theta(y\mid x)}{\pi_{\text{ref}}(y\mid x)
 
 ```mermaid
 flowchart TD
-    A[DPO 动机:跳过 RM/PPO] --> B[核心关系 r=β·log π/π_ref]
-    B --> C[代入 Bradley-Terry 消去奖励]
-    C --> D["损失: -log σ(β·(Δπ - Δref))"]
+    A["DPO 动机 跳过 RMPPO"] --> B["核心关系 r β log ππref"]
+    B --> C["代入 BradleyTerry 消去奖励"]
+    C --> D["损失 -log σ β Δπ - Δref"]
 
-    E[dpo.jsonl 偏序对] --> F[chosen 与 rejected 同 prompt]
-    F --> G[apply_chat_template + tokenize]
-    G --> H[generate_loss_mask: 只 assistant 段含 EOS]
-    H --> I[Shift Trick: x=ids[:-1], y=ids[1:]]
-    I --> J[6 张量: x/y/mask × chosen/rejected]
+    E["dpo.jsonl 偏序对"] --> F["chosen 与 rejected 同 prompt"]
+    F --> G["apply_chat_template 加 tokenize"]
+    G --> H["generate_loss_mask 只 assistant 段含 EOS"]
+    H --> I["Shift Trick x ids-1 y ids1"]
+    I --> J["6 张量 xy/mask 乘 chosen/rejected"]
 
-    J --> K[train_epoch]
+    J --> K["train_epoch"]
     K --> L["cat 拼接 2B batch"]
-    L --> M["ref_model: no_grad 前向 → ref_log_probs"]
-    L --> N["policy model 前向 → policy_log_probs"]
-    M --> O[dpo_loss]
+    L --> M["ref_model no_grad 前向 ref_log_probs"]
+    L --> N["policy model 前向 policy_log_probs"]
+    M --> O["dpo_loss"]
     N --> O
     O --> P["sum/seq_len 长度归一化"]
-    P --> Q["切分 chosen/rejected: batch//2"]
+    P --> Q["切分 chosen/rejected batch2"]
     Q --> R["pi_logratios - ref_logratios"]
-    R --> S["-logsigmoid(beta * logits)"]
-    S --> T[梯度更新 policy, ref frozen]
+    R --> S["-logsigmoid beta logits"]
+    S --> T["梯度更新 policy ref frozen"]
 
-    U[超参] --> V["beta=0.1 控制 KL 偏离"]
+    U["超参"] --> V["beta=0.1 控制 KL 偏离"]
     U --> W["lr=4e-8 比 SFT 小一档"]
     U --> X["epochs=1 偏好微调"]
 ```
