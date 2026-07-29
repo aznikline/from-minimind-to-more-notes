@@ -159,41 +159,40 @@ $$T_{io} = \frac{\text{数据量}}{\text{带宽}} = \frac{16 \text{ GB}}{1000 \t
 
 ## 篇内小思维导图
 
-```
-LLM 推理优化
-│
-├─ 瓶颈转移:算力(FLOPS) → 显存带宽 + 容量
-│   └─ Roofline: P = min(π, I×β);Decode 算术强度极低 → Memory Bound
-│
-├─ KV Cache(空间换时间,算力→存储)
-│   ├─ 机制:Prefill 算全量 K/V 存 cache;Decode 只算新 q/k/v,cat 进 cache
-│   ├─ 复杂度:单步 O(L²)→O(L);Prefill 仍 O(L²)
-│   ├─ 不缓存 Q:Q 每步新(当前关注点);K/V 历史固定
-│   └─ 显存挑战:M_kv = 2×L×N_kv×D×L_seq×B×S_prec,常超权重本身
-│
-├─ 注意力架构演进(精度↔效率)
-│   ├─ MHA  Q:K:V = H:H:H   精度最高,显存大   (Llama2 7B/13B)
-│   ├─ MQA  Q:K:V = H:1:1   显存最优,精度损   (Falcon, PaLM)
-│   ├─ GQA  Q:K:V = H:G:G   折中,甜点 G=8      (Llama2 70B, Llama3, Mistral)
-│   │        G=H→MHA; G=1→MQA; Up-training 平滑升级
-│   └─ MLA  低秩压缩 latent  比 GQA 更小       (DeepSeek-V2/V3)
-│
-├─ Flash Attention(计算→IO)
-│   ├─ 痛点:HBM 读写 N×N 矩阵占大头(非计算本身)
-│   ├─ Tiling:Q/K/V 切块入 SRAM,Softmax 动态归一化,N×N 不落 HBM
-│   ├─ Recomputation:反向重算,FLOPs↑ 但 HBM 访问↓,墙钟↓ 2-4x
-│   ├─ V2:序列维并行 + 外层 Q 块循环
-│   ├─ Flash Decoding:Split-K 并行 + Reduce,长上下文 8x+
-│   └─ 本质:IO-aware,把瓶颈从算力挪到带宽后的必然选择
-│
-├─ PagedAttention(vLLM,显存布局)
-│   └─ 类 OS 虚拟内存分页,KV Block 离散存储,利用率 60%→95%+
-│
-├─ 显存框架
-│   └─ M_total = M_weights(P×S) + M_kv(2×L×N_kv×D×L_seq×B×S) + M_act
-│
-└─ Minimind 实现(model_minimind.py)
-    ├─ repeat_kv:expand+reshape 把 KV 头对齐 Q 头
-    ├─ Attention:GQA 投影(K/V 头数更小) + RoPE + cat cache + SDPA/标准分支
-    └─ Flash 仅 Prefill 无 cache 时启用(教学实现,未覆盖 Flash Decoding)
+```mermaid
+mindmap
+  root((LLM推理优化))
+    瓶颈转移
+      算力FLOPS转显存带宽加容量
+      Roofline P=min π Iβ
+      Decode算术强度极低转Memory Bound
+    KV Cache
+      空间换时间算力转存储
+      机制 Prefill算全量KV存cache Decode只算新qkv
+      复杂度 单步OL2降OL Prefill仍OL2
+      不缓存Q Q每步新 K-V历史固定
+      显存挑战 Mkv常超权重本身
+    注意力架构演进
+      MHA H比H比H 精度最高显存大 Llama2
+      MQA H比1比1 显存最优精度损 Falcon
+      GQA H比G比G 折中甜点G8 Llama3
+      G等于H为MHA G等于1为MQA
+      MLA 低秩压缩latent 比GQA更小 DeepSeek
+    Flash Attention
+      痛点 HBM读写N乘N矩阵占大头
+      Tiling QKV切块入SRAM N乘N不落HBM
+      Recomputation 反向重算 墙钟降2到4x
+      V2 序列维并行加外层Q块循环
+      Flash Decoding Split-K并行加Reduce
+      本质 IO-aware瓶颈挪到带宽
+    PagedAttention
+      vLLM显存布局
+      类OS虚拟内存分页 KV块离散存储
+      利用率60升95
+    显存框架
+      Mtotal等于Mweights加Mkv加Mact
+    Minimind实现
+      repeat_kv 把KV头对齐Q头
+      Attention GQA投影加RoPE加cat cache
+      Flash仅Prefill无cache时启用
 ```
