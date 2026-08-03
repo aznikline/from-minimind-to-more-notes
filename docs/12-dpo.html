@@ -7,7 +7,7 @@
 <meta name="description" content="DPO 用同一个 SFT 模型充当&quot;参考&quot;与&quot;策略&quot;两份角色，直接在 chosen/rejected 偏序对上做带 log-ratio 的二元交叉熵，跳过显式奖励模型与 PPO，让策略在偏离参考模型的代价下学会偏好。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Benne&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Benne&amp;family=Noto+Serif+SC:wght@400;500;600&amp;family=Noto+Sans+SC:wght@400;500&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
 <link rel="stylesheet" href="assets/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
@@ -18,6 +18,8 @@
 <div class="header-inner">
 <a class="brand" href="index.html">From Minimind to More<small>精读结构化笔记</small></a>
 <nav class="nav">
+<a href="overview.html">总图</a>
+<span class="nav-sep">·</span>
 <span class="nav-group">基石</span>
 <a href="01-tokenizer.html" title="基石:Tokenizer 你所需要知道的一切">01</a>
 <a href="02-design.html" title="基石:Minimind 的设计目录">02</a>
@@ -67,9 +69,7 @@
 <h3 id="sec-5">数据构造(<code>DPODataset.__getitem__</code>)</h3>
 <ol><li>取 <code>chosen</code> 与 <code>rejected</code> 两个多轮对话列表。</li><li><code>apply_chat_template(tokenize=False)</code> 拼成纯文本字符串。</li><li><code>tokenizer(truncation=True, padding='max_length')</code> 得到 <code>input_ids</code>(定长)。</li><li><code>generate_loss_mask</code>:扫描 <code>input_ids</code>,定位 <code>bos_id</code>(<code>&lt;bos&gt;assistant\n</code> 起始标志)到 <code>eos_id</code>(<code>&lt;eos&gt;\n</code> 结束标志)之间的区间,把这段 mask 置 1(含 EOS,让模型学会生成结束符);user 输入与 padding 全为 0。</li><li><strong>Shift Trick</strong>:因果 LM 预测下一 token,故 <code>x = input_ids[:-1]</code>,<code>y = input_ids[1:]</code>,<code>mask = loss_mask[1:]</code>(mask 对齐 y 位置)。</li><li>返回 6 个张量:<code>x_chosen, y_chosen, mask_chosen, x_rejected, y_rejected, mask_rejected</code>。</li></ol>
 <h3 id="sec-6">训练循环(<code>train_epoch</code>)</h3>
-<ol><li>拿到 batch 的 6 个张量,移到 GPU。</li><li><strong>拼接</strong>:<code>x = cat([x_chosen, x_rejected])</code>,<code>y</code>、<code>mask</code> 同理,一次前向算完两份,batch 维变 <code>2*B</code>。</li><li>动态调学习率(Cosine Annealing,<code>get_lr</code>)。</li><li><strong>双模型前向</strong>(autocast 混合精度):</li></ol>
-<ul><li>参考模型:<code>with torch.no_grad(): ref_logits = ref_model(x).logits</code>,再 <code>logits_to_log_probs(ref_logits, y)</code>。</li><li>策略模型:<code>logits = model(x).logits</code>,再 <code>logits_to_log_probs(logits, y)</code>。</li></ul>
-<ol><li><strong>DPO 损失</strong>:<code>dpo_loss(ref_log_probs, policy_log_probs, mask, beta)</code>。</li><li><code>loss = dpo_loss_val + outputs.aux_loss</code>(aux_loss 是 MoE 负载均衡,非 MoE 为 0)。</li><li><code>/ accumulation_steps</code> 后 <code>scaler.scale(loss).backward()</code>。</li><li>梯度累积到点:<code>unscale_</code> -&gt; <code>clip_grad_norm_(1.0)</code> -&gt; <code>scaler.step</code> -&gt; <code>zero_grad(set_to_none=True)</code>。</li><li>日志打印 loss/dpo_loss/aux_loss/lr;按 <code>save_interval</code> 存半精度 <code>.pth</code> + 完整 checkpoint。</li></ol>
+<ol><li>拿到 batch 的 6 个张量,移到 GPU。</li><li><strong>拼接</strong>:<code>x = cat([x_chosen, x_rejected])</code>,<code>y</code>、<code>mask</code> 同理,一次前向算完两份,batch 维变 <code>2*B</code>。</li><li>动态调学习率(Cosine Annealing,<code>get_lr</code>)。</li><li><strong>双模型前向</strong>(autocast 混合精度):<ul><li>参考模型:<code>with torch.no_grad(): ref_logits = ref_model(x).logits</code>,再 <code>logits_to_log_probs(ref_logits, y)</code>。</li><li>策略模型:<code>logits = model(x).logits</code>,再 <code>logits_to_log_probs(logits, y)</code>。</li></ul></li><li><strong>DPO 损失</strong>:<code>dpo_loss(ref_log_probs, policy_log_probs, mask, beta)</code>。</li><li><code>loss = dpo_loss_val + outputs.aux_loss</code>(aux_loss 是 MoE 负载均衡,非 MoE 为 0)。</li><li><code>/ accumulation_steps</code> 后 <code>scaler.scale(loss).backward()</code>。</li><li>梯度累积到点:<code>unscale_</code> -&gt; <code>clip_grad_norm_(1.0)</code> -&gt; <code>scaler.step</code> -&gt; <code>zero_grad(set_to_none=True)</code>。</li><li>日志打印 loss/dpo_loss/aux_loss/lr;按 <code>save_interval</code> 存半精度 <code>.pth</code> + 完整 checkpoint。</li></ol>
 <h3 id="sec-7"><code>dpo_loss</code> 内部 7 步</h3>
 <ol><li><code>seq_lengths = mask.sum(dim=1, keepdim=True).clamp_min(1e-8)</code> — 有效长度,防除零。</li><li>句级平均 log 概率:<code>(log_probs * mask).sum(dim=1) / seq_lengths.squeeze()</code>。</li><li>拆分 chosen / rejected:<code>[:batch//2]</code> 与 <code>[batch//2:]</code>(依赖拼接顺序)。</li><li><code>pi_logratios = chosen_policy - reject_policy</code>。</li><li><code>ref_logratios = chosen_ref - reject_ref</code>。</li><li><code>logits = pi_logratios - ref_logratios</code>。</li><li><code>loss = -F.logsigmoid(beta * logits)</code>,返回 <code>loss.mean()</code>。</li></ol>
 <h2 id="sec-8">源码要点(Minimind DPO 代码要点)</h2>

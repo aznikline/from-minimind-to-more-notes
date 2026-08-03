@@ -7,7 +7,7 @@
 <meta name="description" content="MoE 通过稀疏激活与条件计算,把&quot;模型总参数量(知识容量)&quot;与&quot;单 token 激活参数量(算力成本)&quot;解耦——以 DeepSeek-V3 为代表的&quot;细粒度路由专家 + 共享专家 + 无辅助损失动态偏置&quot;组合,在不增加推理算力的前提下撬动数倍参数容量,是后摩尔定律时代打破算力墙">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Benne&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Benne&amp;family=Noto+Serif+SC:wght@400;500;600&amp;family=Noto+Sans+SC:wght@400;500&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
 <link rel="stylesheet" href="assets/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
@@ -18,6 +18,8 @@
 <div class="header-inner">
 <a class="brand" href="index.html">From Minimind to More<small>精读结构化笔记</small></a>
 <nav class="nav">
+<a href="overview.html">总图</a>
+<span class="nav-sep">·</span>
 <span class="nav-group">基石</span>
 <a href="01-tokenizer.html" title="基石:Tokenizer 你所需要知道的一切">01</a>
 <a href="02-design.html" title="基石:Minimind 的设计目录">02</a>
@@ -126,21 +128,16 @@
 <h3 id="sec-24">1. <code>FeedForward</code> — SwiGLU 单专家</h3>
 <ul><li><code>intermediate_size</code> 默认 <code>hidden*8/3</code>,向上取整到 64 倍数(如 512→1408=64×22)优化 GPU。</li><li>三个 <code>nn.Linear(bias=False)</code>:gate_proj / up_proj / down_proj。</li><li>forward:<code>down_proj(act_fn(gate_proj(x)) * up_proj(x))</code>,即 SwiGLU。</li><li>激活函数从 <code>ACT2FN[config.hidden_act]</code> 取(通常 silu/Swish)。</li></ul>
 <h3 id="sec-25">2. <code>MOEFeedForward</code> — MoE 层(路由+共享)</h3>
-<ul><li>路由专家 <code>nn.ModuleList([FeedForward]<em>n_routed_experts)</code>;门控 <code>MoEGate(config)</code>;可选共享专家 <code>nn.ModuleList([FeedForward]</em>n_shared_experts)</code>。</li><li>forward 三步:</li></ul>
-<ol><li><code>topk_idx, topk_weight, aux_loss = self.gate(x)</code></li><li>训练分支:<code>repeat_interleave(top_k)</code> 复制 token → 遍历专家用 <code>mask=flat_topk_idx==i</code> 取该专家 token → 空专家 <code>+0<em>sum(params)</code> 保梯度流 → <code>view+</em>topk_weight+.sum(dim=1)</code> 加权合并;推理分支:<code>moe_infer</code>。</li><li>共享专家恒激活:<code>y = y + expert(identity)</code>(残差式直加)。</li></ol>
-<ul><li><code>self.aux_loss</code> 暴露给外层加到总 loss。</li><li><code>moe_infer</code>:<code>argsort</code> 按专家排序 → <code>bincount().cumsum(0)</code> 算每专家 token 范围 → <code>token_idxs//top_k</code> 还原原索引 → 跳空专家 → 批量算 <code>expert(tokens).mul_(weights)</code> → <code>scatter_add_</code> 原子累加回 cache。</li></ul>
+<ul><li>路由专家 <code>nn.ModuleList([FeedForward]<em>n_routed_experts)</code>;门控 <code>MoEGate(config)</code>;可选共享专家 <code>nn.ModuleList([FeedForward]</em>n_shared_experts)</code>。</li><li>forward 三步:<ol><li><code>topk_idx, topk_weight, aux_loss = self.gate(x)</code></li><li>训练分支:<code>repeat_interleave(top_k)</code> 复制 token → 遍历专家用 <code>mask=flat_topk_idx==i</code> 取该专家 token → 空专家 <code>+0<em>sum(params)</code> 保梯度流 → <code>view+</em>topk_weight+.sum(dim=1)</code> 加权合并;推理分支:<code>moe_infer</code>。</li><li>共享专家恒激活:<code>y = y + expert(identity)</code>(残差式直加)。</li></ol></li><li><code>self.aux_loss</code> 暴露给外层加到总 loss。</li><li><code>moe_infer</code>:<code>argsort</code> 按专家排序 → <code>bincount().cumsum(0)</code> 算每专家 token 范围 → <code>token_idxs//top_k</code> 还原原索引 → 跳空专家 → 批量算 <code>expert(tokens).mul_(weights)</code> → <code>scatter_add_</code> 原子累加回 cache。</li></ul>
 <h3 id="sec-26">3. <code>MoEGate</code> — 路由门控</h3>
-<ul><li><code>weight: [n_routed_experts, hidden_size]</code>,Kaiming 均匀初始化。</li><li>forward:</li></ul>
-<ol><li>展平 <code>[bsz,seq,h]→[bsz*seq,h]</code>;<code>F.linear(x, weight)</code> 得 logits <code>[T, N]</code>。</li><li><code>softmax(dim=-1)</code> 得 scores。</li><li><code>torch.topk(scores, k=top_k, sorted=False)</code> 得 topk_weight / topk_idx。</li><li>若 <code>top_k&gt;1 and norm_topk_prob</code>:topk_weight 归一化和为 1(加 1e-20 防 0)。</li><li>训练 + α&gt;0 算 aux loss:</li></ol>
-<ul><li><code>seq_aux=True</code>(DeepSeek-V2/V3 风格,序列级):<code>scatter_add_</code> 统计 batch 内每专家被选次数 → 归一化 <code>div_(seq_len<em>top_k/N)</code> → <code>aux_loss=(ce</em>scores.mean(dim=1)).sum(dim=1).mean()*α</code>。</li><li><code>seq_aux=False</code>(Switch 风格,token 级):<code>one_hot</code> → <code>ce=mask.mean(0)</code>;<code>Pi=scores.mean(0)</code>;<code>fi=ce<em>N</code>;<code>aux_loss=(Pi</em>fi).sum()*α</code>。</li><li>返回 <code>(topk_idx, topk_weight, aux_loss)</code>。</li></ul>
+<ul><li><code>weight: [n_routed_experts, hidden_size]</code>,Kaiming 均匀初始化。</li><li>forward:<ol><li>展平 <code>[bsz,seq,h]→[bsz*seq,h]</code>;<code>F.linear(x, weight)</code> 得 logits <code>[T, N]</code>。</li><li><code>softmax(dim=-1)</code> 得 scores。</li><li><code>torch.topk(scores, k=top_k, sorted=False)</code> 得 topk_weight / topk_idx。</li><li>若 <code>top_k&gt;1 and norm_topk_prob</code>:topk_weight 归一化和为 1(加 1e-20 防 0)。</li><li>训练 + α&gt;0 算 aux loss:<ul><li><code>seq_aux=True</code>(DeepSeek-V2/V3 风格,序列级):<code>scatter_add_</code> 统计 batch 内每专家被选次数 → 归一化 <code>div_(seq_len<em>top_k/N)</code> → <code>aux_loss=(ce</em>scores.mean(dim=1)).sum(dim=1).mean()*α</code>。</li><li><code>seq_aux=False</code>(Switch 风格,token 级):<code>one_hot</code> → <code>ce=mask.mean(0)</code>;<code>Pi=scores.mean(0)</code>;<code>fi=ce<em>N</code>;<code>aux_loss=(Pi</em>fi).sum()*α</code>。</li></ul></li></ol></li><li>返回 <code>(topk_idx, topk_weight, aux_loss)</code>。</li></ul>
 <p><strong>值得记住的工程细节</strong>:</p>
 <ul><li>训练空专家的 <code>0*sum(params)</code> 防止 DDP hang,是 MoE 分布式训练经典 hack。</li><li>top_k&gt;1 时权重归一(<code>norm_topk_prob</code>)确保多专家权重和为 1。</li><li>推理路径用 <code>@torch.no_grad()</code> + in-place <code>mul_</code>/<code>scatter_add_</code>,autograd 不友好但极速。</li></ul>
 <h2 id="sec-27">作者独到见解/类比</h2>
 <ul><li><strong>仿生学类比</strong>:人脑不激活全部神经元,按任务调特定功能区;MoE 稀疏激活即此思想的工程化。</li><li><strong>"收费站 vs 双车道智能阀门"</strong>:ReLU/GeLU 是单行道+收费站(硬截断,信息永久丢失,神经元死亡);SwiGLU 是双车道+智能阀门(门控路算 0~1 开度,模型自学"保留 10% 还是 90%")。</li><li><strong>"用宽度换深度/复杂交互"</strong>:SwiGLU 引入 x² 二阶交互,虽多一矩阵但宽度压到 2/3 即可在同预算下换更强表达——经典工程权衡。</li><li><strong>"通识与专才的解耦"</strong>:共享专家=通识基底,路由专家=差异化技能树,回归人类认知本质,这是 DeepSeek 架构哲学的核心。</li><li><strong>"让 autograd 引擎满意 vs 让 GPU 利用率最高"</strong>:训练代码与推理代码分裂的一句话本质——前者为求导正确与 DDP 稳定,后者为延迟最低。</li><li><strong>"系统工程新阶段"</strong>:大模型竞争已不只是算法胜利,DeepSeek-V3 对 FP8/All-to-All 的极致压榨标志进入 System Engineering 阶段。</li><li><strong>训练/推理 batch 差异洞察</strong>:训练大 batch 用 mask 循环遍历全部专家无妨(Python 循环被 GPU 计算淹没);推理小 batch(=1)必须 argsort+跳空专家省 kernel launch。</li></ul>
 <h2 id="sec-28">面试考点</h2>
 <h3 id="sec-29">为何 MoE 推理省算力但训练难?</h3>
-<ul><li><strong>省算力(推理)</strong>:稀疏激活,每 token 仅走 K≪N 个专家,FLOPs ∝ 激活参数(37B)而非总参数(671B);条件计算使知识模块化。</li><li><strong>训练难</strong>:</li></ul>
-<ol><li>路由 Top-k 含 ArgMax 性质不可导,未选专家无梯度,需 aux loss/噪声/Gumbel 缓解。</li><li>专家坍缩(赢家通吃),需负载均衡约束。</li><li>EP 引入两次 All-to-All 通信(Dispatch/Combine),通信墙严重,需 DeepEP+NVLink+计算通信重叠。</li><li>DDP 下空专家梯度 None 致同步死锁,需 <code>0*params</code> hack。</li><li>大量参数显存饥渴,须 EP+FP8 细粒度量化。</li><li>训练稳定性(FP8 溢出/下溢、aux loss 与主任务冲突)。</li></ol>
+<ul><li><strong>省算力(推理)</strong>:稀疏激活,每 token 仅走 K≪N 个专家,FLOPs ∝ 激活参数(37B)而非总参数(671B);条件计算使知识模块化。</li><li><strong>训练难</strong>:<ol><li>路由 Top-k 含 ArgMax 性质不可导,未选专家无梯度,需 aux loss/噪声/Gumbel 缓解。</li><li>专家坍缩(赢家通吃),需负载均衡约束。</li><li>EP 引入两次 All-to-All 通信(Dispatch/Combine),通信墙严重,需 DeepEP+NVLink+计算通信重叠。</li><li>DDP 下空专家梯度 None 致同步死锁,需 <code>0*params</code> hack。</li><li>大量参数显存饥渴,须 EP+FP8 细粒度量化。</li><li>训练稳定性(FP8 溢出/下溢、aux loss 与主任务冲突)。</li></ol></li></ul>
 <h3 id="sec-30">负载均衡为何重要?</h3>
 <ul><li>不均衡 → 专家坍缩 → 死专家 → 退化为小稠密模型,浪费参数容量、破坏稀疏收益。</li><li>传统 aux loss 强迫均匀但损害主任务(次优路由);DeepSeek 无 aux loss 用动态偏置 b_i 解耦"学路由"与"交通管制",256 专家下仍均衡且性能更高。</li></ul>
 <h3 id="sec-31">其他高频考点</h3>

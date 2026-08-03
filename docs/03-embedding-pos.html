@@ -7,7 +7,7 @@
 <meta name="description" content="本文以&quot;分布语义学→位置编码演进→RoPE 复数旋转→NTK/YaRN 频域外推&quot;为主线,讲透了 LLM 如何把离散符号、线性时序与高维几何三者缝合:Embedding 解决&quot;意义&quot;的度量,RoPE 用旋转诱导出相对位置的平移不变性,YaRN 则用频域分段插值加熵温度修正,把上下">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Benne&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Benne&amp;family=Noto+Serif+SC:wght@400;500;600&amp;family=Noto+Sans+SC:wght@400;500&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
 <link rel="stylesheet" href="assets/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
@@ -18,6 +18,8 @@
 <div class="header-inner">
 <a class="brand" href="index.html">From Minimind to More<small>精读结构化笔记</small></a>
 <nav class="nav">
+<a href="overview.html">总图</a>
+<span class="nav-sep">·</span>
 <span class="nav-group">基石</span>
 <a href="01-tokenizer.html" title="基石:Tokenizer 你所需要知道的一切">01</a>
 <a href="02-design.html" title="基石:Minimind 的设计目录">02</a>
@@ -80,8 +82,8 @@
 <p>NTK-by-parts(频域分段斜坡混合) + Temperature Scaling(熵修正) → PPL 与 Passkey Retrieval 双优,0.1% 微调 4k→128k。</p>
 <h2 id="sec-17">源码要点</h2>
 <p>涉及 minimind <code>model/model_minimind.py</code> 两函数:</p>
-<ul><li><strong><code>precompute_freqs_cis(dim, end, rope_base, rope_scaling)</code></strong></li><li><code>freqs = 1.0 / (rope_base ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))</code> —— 只用偶数索引生成 $d/2$ 个频率,符合 RoPE 二维分块。</li><li>YaRN 分支:<code>inv_dim(b)</code> 由波长 $\lambda=2\pi/f$ 反推维度索引;<code>low/high</code> 划定快慢频边界;<code>ramp = clamp((arange(d/2)-low)/(high-low), 0, 1)</code> 即 $\gamma(d)$;<code>freqs = freqs * (1 - ramp + ramp / factor)</code> 实现 $h(\theta)=(1-\gamma)\theta/s+\gamma\theta$。</li><li><code>attn_factor</code> 直接乘到 cos/sin 上,对应温度缩放(代码里默认 1.0,由配置注入)。</li><li><code>torch.cat([cos, cos], dim=-1)</code> 把 $d/2$ 复制到 $d$,配合 rotate\_half 的"后半取反前移"布局。</li></ul>
-<ul><li><strong><code>apply_rotary_pos_emb(q, k, cos, sin, unsqueeze_dim=1)</code></strong></li><li><code>rotate_half(x) = torch.cat((-x[..., d//2:], x[..., :d//2]), dim=-1)</code> —— <code>[a,b,c,d]→[-c,-d,a,b]</code>,实现复数旋转的虚部操作。</li><li><code>q_embed = (q <em> cos) + (rotate_half(q) </em> sin)</code> —— 等价 $x\cdot e^{i\theta}=x\cos\theta+\text{rotate\_half}(x)\sin\theta$。</li><li>cos/sin 在 <code>unsqueeze_dim</code> 上插维以广播匹配 q/k 形状,默认 dim=1 对应 <code>[batch, seq, heads, head_dim]</code>。</li><li><code>position_ids</code> 参数未使用(cos/sin 已含位置),保留以兼容 HF 接口。</li></ul>
+<ul><li><strong><code>precompute_freqs_cis(dim, end, rope_base, rope_scaling)</code></strong><ul><li><code>freqs = 1.0 / (rope_base ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))</code> —— 只用偶数索引生成 $d/2$ 个频率,符合 RoPE 二维分块。</li><li>YaRN 分支:<code>inv_dim(b)</code> 由波长 $\lambda=2\pi/f$ 反推维度索引;<code>low/high</code> 划定快慢频边界;<code>ramp = clamp((arange(d/2)-low)/(high-low), 0, 1)</code> 即 $\gamma(d)$;<code>freqs = freqs * (1 - ramp + ramp / factor)</code> 实现 $h(\theta)=(1-\gamma)\theta/s+\gamma\theta$。</li><li><code>attn_factor</code> 直接乘到 cos/sin 上,对应温度缩放(代码里默认 1.0,由配置注入)。</li><li><code>torch.cat([cos, cos], dim=-1)</code> 把 $d/2$ 复制到 $d$,配合 rotate\_half 的"后半取反前移"布局。</li></ul></li></ul>
+<ul><li><strong><code>apply_rotary_pos_emb(q, k, cos, sin, unsqueeze_dim=1)</code></strong><ul><li><code>rotate_half(x) = torch.cat((-x[..., d//2:], x[..., :d//2]), dim=-1)</code> —— <code>[a,b,c,d]→[-c,-d,a,b]</code>,实现复数旋转的虚部操作。</li><li><code>q_embed = (q <em> cos) + (rotate_half(q) </em> sin)</code> —— 等价 $x\cdot e^{i\theta}=x\cos\theta+\text{rotate\_half}(x)\sin\theta$。</li><li>cos/sin 在 <code>unsqueeze_dim</code> 上插维以广播匹配 q/k 形状,默认 dim=1 对应 <code>[batch, seq, heads, head_dim]</code>。</li><li><code>position_ids</code> 参数未使用(cos/sin 已含位置),保留以兼容 HF 接口。</li></ul></li></ul>
 <h2 id="sec-18">作者独到见解/类比</h2>
 <p>"几何与时空的折叠"指三层含义:</p>
 <ol><li><strong>几何折叠</strong> — Embedding 把离散符号折叠进高维连续空间(语义几何化),RoPE 又把线性时序折叠进同一空间的旋转(位置几何化);加法 APE 是"平移",RoPE 是"旋转",作者明确断言"几何优于代数":旋转比平移更符合点积注意力的几何直观,让相对位置不是学出来的特征而是数学必然涌现的性质。</li><li><strong>时空折叠</strong> — 时序(1D 文本位置)被折进几何(向量旋转),再经 M-RoPE 折叠到 2D 图像、3D 视频的时空统一;DeepSeek 解耦 RoPE 则把"位置几何"与"语义几何"显式拆开又相加,证明 RoPE 是可插拔的独立几何模块。</li><li><strong>频域视角的觉醒</strong> — NTK/YaRN 把"位置编码外推"重新解读为信号处理问题:低频维度波长极长、训练时连半圈都没转完,故外推必崩;高频已转无数圈,故直接外推无妨。作者称这是"从矩阵运算上升到频域分析"的胜利。</li></ol>

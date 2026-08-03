@@ -3,7 +3,7 @@
 """
 FMMTM Notes 静态阅读站构建脚本.
 
-读所有 NN_*.md (17 篇) -> 渲染 HTML -> 套纸墨布局模板 -> 输出 docs/*.html
+读所有 NN_*.md (17 篇) -> 渲染 HTML -> 套 situational-awareness 站风布局模板 -> 输出 docs/*.html
 (输出到 docs/ 以便 GitHub Pages 直接从 main/docs 服)
 
 - 优先用 python-markdown (含 fenced_code/tables/toc/attr_list)
@@ -49,6 +49,35 @@ def _inline(s: str) -> str:
         return m.group(0)
     s = re.sub(r'\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)', _link, s)
     return s
+
+
+def _parse_list(lines: list[str], i: int, indent: int) -> tuple[str, int]:
+    """解析缩进深度为 indent 的连续列表块(支持嵌套),返回 (html, 下一行下标)。"""
+    n = len(lines)
+    parts: list[str] = []
+    ordered = bool(re.match(r'^\s*\d+\.\s+', lines[i]))
+    tag = 'ol' if ordered else 'ul'
+    while i < n:
+        line = lines[i]
+        s = line.strip()
+        if not s:
+            break
+        m = re.match(r'^([-*]|\d+\.)\s+(.*)$', s)
+        if not m:
+            break
+        cur = len(line) - len(line.lstrip())
+        if cur != indent:
+            break
+        text = _inline(m.group(2).strip())
+        i += 1
+        sub = ''
+        if i < n and lines[i].strip():
+            nxt_indent = len(lines[i]) - len(lines[i].lstrip())
+            nxt_s = lines[i].strip()
+            if nxt_indent > indent and re.match(r'^([-*]|\d+\.)\s+', nxt_s):
+                sub, i = _parse_list(lines, i, nxt_indent)
+        parts.append(f'<li>{text}{sub}</li>')
+    return f'<{tag}>{"".join(parts)}</{tag}>', i
 
 
 def _fallback_render(md_text: str) -> str:
@@ -110,20 +139,10 @@ def _fallback_render(md_text: str) -> str:
             out.append(f'<blockquote>{_inline(" ".join(bq_lines))}</blockquote>')
             continue
 
-        if re.match(r'^[-*]\s+', stripped):
-            items: list[str] = []
-            while i < n and re.match(r'^\s*[-*]\s+', lines[i]):
-                items.append(re.sub(r'^\s*[-*]\s+', '', lines[i].rstrip()))
-                i += 1
-            out.append('<ul>' + ''.join(f'<li>{_inline(it)}</li>' for it in items) + '</ul>')
-            continue
-
-        if re.match(r'^\d+\.\s+', stripped):
-            items2: list[str] = []
-            while i < n and re.match(r'^\s*\d+\.\s+', lines[i]):
-                items2.append(re.sub(r'^\s*\d+\.\s+', '', lines[i].rstrip()))
-                i += 1
-            out.append('<ol>' + ''.join(f'<li>{_inline(it)}</li>' for it in items2) + '</ol>')
+        if re.match(r'^[-*]\s+', stripped) or re.match(r'^\d+\.\s+', stripped):
+            indent = len(line) - len(line.lstrip())
+            list_html, i = _parse_list(lines, i, indent)
+            out.append(list_html)
             continue
 
         if not stripped:
@@ -166,6 +185,8 @@ GROUPS = [
 
 def slug_of(path: Path) -> str:
     name = re.sub(r'_', '-', path.stem)
+    if name == '00-OVERVIEW':
+        return 'overview.html'
     return name + '.html'
 
 
@@ -213,7 +234,7 @@ def build_header(notes: list[dict]) -> str:
              '<div class="header-inner">',
              '<a class="brand" href="index.html">From Minimind to More<small>精读结构化笔记</small></a>',
              '<nav class="nav">']
-    overview = next((n for n in notes if n['slug'] == 'overview.html'), None)
+    overview = next((n for n in notes if n.get('num') == 0 or n['slug'] == 'overview.html'), None)
     if overview:
         parts.append(f'<a href="{overview["slug"]}">总图</a>')
         parts.append('<span class="nav-sep">·</span>')
@@ -247,7 +268,7 @@ PAGE_TPL = """<!DOCTYPE html>
 <meta name="description" content="{desc}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Benne&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Benne&amp;family=Noto+Serif+SC:wght@400;500;600&amp;family=Noto+Sans+SC:wght@400;500&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
 <link rel="stylesheet" href="assets/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
@@ -347,6 +368,22 @@ def build_landing(notes) -> str:
         )
     note_cards = ''.join(note_cards_parts)
     header = build_header(notes)
+    # 统计信息条
+    md_all = '\n'.join(n.get('text', '') for n in notes)
+    n_notes = sum(1 for n in notes if n.get('num', 0) > 0)
+    n_mermaid = md_all.count('```mermaid')
+    n_math = md_all.count('$$')
+    n_crit = md_all.count('批判性批注')
+    n_chars = len(md_all)
+    stats_html = (
+        '<div class="stats">'
+        f'<div class="stat"><div class="n">{n_notes}</div><div class="l">篇精读笔记</div></div>'
+        f'<div class="stat"><div class="n">{n_mermaid}</div><div class="l">张思维导图</div></div>'
+        f'<div class="stat"><div class="n">{n_math}</div><div class="l">条关键公式</div></div>'
+        f'<div class="stat"><div class="n">{n_crit}</div><div class="l">节批判性批注</div></div>'
+        f'<div class="stat"><div class="n">{n_chars // 10000}万+</div><div class="l">字精读内容</div></div>'
+        '</div>'
+    )
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -356,7 +393,7 @@ def build_landing(notes) -> str:
 <meta name="description" content="对 from-minimind-to-more 全 17 篇正文的逐篇精读合成笔记。minimind 26M 教学级 LLM，Tokenizer→架构→训练算法→对齐→求职一条龙。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Benne&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Benne&amp;family=Noto+Serif+SC:wght@400;500;600&amp;family=Noto+Sans+SC:wght@400;500&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -366,8 +403,10 @@ def build_landing(notes) -> str:
   <section class="hero">
     <h1>From Minimind to More</h1>
     <p>对 from-minimind-to-more 全 17 篇正文的逐篇精读合成笔记。</p>
-    <p class="src"><a href="https://github.com/Tongyun1/from-minimind-to-more" target="_blank" rel="noopener">github.com/Tongyun1/from-minimind-to-more</a> · 16 篇正文 + 总图 · 含思维导图 / 公式 / 源码要点 / 批判性批注</p>
+    <p class="src"><a href="https://github.com/Tongyun1/from-minimind-to-more" target="_blank" rel="noopener">github.com/Tongyun1/from-minimind-to-more</a> · minimind 26M 教学级 LLM，从 Tokenizer 到 RLHF 一条龙</p>
   </section>
+
+  {stats_html}
 
   <h2 class="section-title">阅读路径</h2>
   <div class="cards">
