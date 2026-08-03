@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>架构:超级拼装(搭建自己的大模型) — From Minimind to More</title>
+<meta name="description" content="把前文各模块(embedding/RMSNorm/Attention/FFN 或 MoE/lm_head)按 Pre-Norm + 残差的标准 Decoder-Only 骨架拼成 MiniMind,特色是 YaRN 外推 + DeepSeek 式 Shared+Routed Mo">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
+</head>
+<body>
+<div class="progress-bar" role="progressbar" aria-label="阅读进度"></div>
+<div class="sidebar-backdrop"></div>
+<div class="layout">
+<aside class="sidebar" aria-label="目录">
+<button class="sidebar__toggle" aria-label="开关目录">☰</button>
+<div class="sidebar__brand"><a href="index.html">From Minimind<br/>to More</a></div>
+<div class="sidebar__sub">精读结构化笔记 · 16+1 篇</div>
+<nav class="toc"><div class="toc__group">基石</div>
+<div class="toc__item"><a class="toc__link " href="01-tokenizer.html"><span class="toc__num">01</span><span>基石:Tokenizer 你所需要知道的一切</span></a></div>
+<div class="toc__item"><a class="toc__link " href="02-design.html"><span class="toc__num">02</span><span>基石:Minimind 的设计目录</span></a></div>
+<div class="toc__item"><a class="toc__link " href="03-embedding-pos.html"><span class="toc__num">03</span><span>基石:Embedding 与位置编码</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">架构</div>
+<div class="toc__item"><a class="toc__link " href="04-norm.html"><span class="toc__num">04</span><span>架构:归一化技术(原理、演进与前沿)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="05-kvcache-flashattn.html"><span class="toc__num">05</span><span>架构:大模型优化方法(KV Cache → Flash Attention)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="06-moe.html"><span class="toc__num">06</span><span>架构:混合专家模型(MoE)</span></a></div>
+<div class="toc__item"><a class="toc__link is-current" href="07-assemble.html"><span class="toc__num">07</span><span>架构:超级拼装(搭建自己的大模型)</span></a><ul class="toc__sub"><li><a class="toc__sub-link" href="07-assemble.html#sec-1">一句话精炼</a></li><li><a class="toc__sub-link" href="07-assemble.html#sec-2">核心概念(各模块如何组装成一个完整 Transformer)</a></li><li><a class="toc__sub-link" href="07-assemble.html#sec-3">整体架构/数据流(前向流程,逐层张量形状变化)</a></li><li><a class="toc__sub-link" href="07-assemble.html#sec-4">关键公式(如涉及)</a></li><li><a class="toc__sub-link" href="07-assemble.html#sec-5">源码要点(Minimind 模型主体代码要点)</a></li><li><a class="toc__sub-link" href="07-assemble.html#sec-6">作者独到见解/类比</a></li><li><a class="toc__sub-link" href="07-assemble.html#sec-7">面试考点(为何这么组装、Pre-Norm 拮抗等)</a></li><li><a class="toc__sub-link" href="07-assemble.html#sec-8">批判性批注</a></li><li><a class="toc__sub-link" href="07-assemble.html#sec-9">章内小思维导图</a></li></ul></div>
+<div class="toc__item"><a class="toc__link " href="08-infer-train-opt.html"><span class="toc__num">08</span><span>架构(可选):大规模语言模型推理与训练优化机制</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">算法</div>
+<div class="toc__item"><a class="toc__link " href="09-rl-overview.html"><span class="toc__num">09</span><span>算法:大模型强化学习算法概览</span></a></div>
+<div class="toc__item"><a class="toc__link " href="10-pretrain.html"><span class="toc__num">10</span><span>算法:Minimind 的 Pretrain</span></a></div>
+<div class="toc__item"><a class="toc__link " href="11-sft.html"><span class="toc__num">11</span><span>算法:Minimind 的 SFT</span></a></div>
+<div class="toc__item"><a class="toc__link " href="12-dpo.html"><span class="toc__num">12</span><span>算法:Minimind 的 DPO</span></a></div>
+<div class="toc__item"><a class="toc__link " href="13-ppo.html"><span class="toc__num">13</span><span>算法:Minimind 的 PPO</span></a></div>
+<div class="toc__item"><a class="toc__link " href="14-grpo.html"><span class="toc__num">14</span><span>算法:Minimind 的 GRPO 及其变体</span></a></div>
+<div class="toc__item"><a class="toc__link " href="15-spo.html"><span class="toc__num">15</span><span>算法:Minimind 的 SPO</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">求职</div>
+<div class="toc__item"><a class="toc__link " href="16-interview-100.html"><span class="toc__num">16</span><span>求职:大模型八股 100 问</span></a></div>
+</nav>
+</aside>
+<main class="content">
+<article class="article">
+<div class="article__crumb"><a href="index.html">总图</a> / 架构</div>
+<h1 class="article__title">架构:超级拼装(搭建自己的大模型)</h1>
+<p class="article__lead">把前文各模块(embedding/RMSNorm/Attention/FFN 或 MoE/lm_head)按 Pre-Norm + 残差的标准 Decoder-Only 骨架拼成 MiniMind,特色是 YaRN 外推 + DeepSeek 式 Shared+Routed MoE + Gemma 式权重共享 + 全系 GQA,是 LLaMA 骨架上的"小而全"现代 LLM。</p>
+<h2 id="sec-1">一句话精炼</h2>
+<p>把前文各模块(embedding/RMSNorm/Attention/FFN 或 MoE/lm_head)按 Pre-Norm + 残差的标准 Decoder-Only 骨架拼成 MiniMind,特色是 YaRN 外推 + DeepSeek 式 Shared+Routed MoE + Gemma 式权重共享 + 全系 GQA,是 LLaMA 骨架上的"小而全"现代 LLM。</p>
+<h2 id="sec-2">核心概念(各模块如何组装成一个完整 Transformer)</h2>
+<ul><li><strong>MiniMindConfig (继承 PretrainedConfig)</strong>:模型"控制台"。hidden_size/层数/头数/词表等基础超参,内含 YaRN 外推开关与 MoE 开关,可从 Dense 无缝切到 Sparse。</li><li><strong>RMSNorm</strong>:仅缩放不去均值(无中心化),比 LayerNorm 计算小、数值稳,LLaMA/Gemma 标配。Pre-Norm 布置在子层之前。</li><li><strong>Attention 类</strong>:上下文聚合核心。</li><li>GQA:<code>num_attention_heads &gt; num_key_value_heads</code>,通过 <code>repeat_kv</code> 复制 KV,降低 KV Cache 显存。</li><li>RoPE + YaRN:旋转位置编码;YaRN 动态调频(beta_fast/beta_slow),免训练外推到 32k。</li><li>Flash Attention:环境支持时直调 <code>F.scaled_dot_product_attention</code>。</li><li><strong>FeedForward (Dense)</strong>:SwiGLU。Gate×Up→Swish→Down,收敛性与性能优于 ReLU+FFN。</li><li><strong>MOEFeedForward (Sparse)</strong>:DeepSeek-V2/V3 风格。</li><li>Shared Experts:<code>n_shared_experts</code> 个,所有 Token 必经,捕获通用知识。</li><li>Routed Experts:<code>n_routed_experts</code> 个,MoEGate 动态选 Top-K。</li><li>MoEGate:计算评分 + Top-K + 辅助损失 Aux Loss 防负载不均。</li><li>输出 = 共享专家 + Σ(路由专家 × 门控权重)。</li><li><strong>MiniMindBlock</strong>:标准层,Pre-Norm + 双残差。</li><li><code>x → RMSNorm → Attention → +x</code></li><li><code>x → RMSNorm → FFN/MoE → +x</code></li><li><strong>MiniMindModel</strong>:Decoder 骨干。embed_tokens + L×Block + 最终 RMSNorm + 预计算 RoPE buffer(persistent=False)。</li><li><strong>MiniMindForCausalLM(继承 PreTrainedModel, GenerationMixin)</strong>:顶层封装。backbone + lm_head;<strong>权重共享(Weight Tying)</strong>:<code>embed_tokens.weight = lm_head.weight</code>;支持 logits_to_keep 切片优化;训练时 Shift Prediction + CrossEntropy(ignore_index=-100)。</li></ul>
+<h2 id="sec-3">整体架构/数据流(前向流程,逐层张量形状变化)</h2>
+<p>符号约定:B 批 / S 序列长 / H 隐藏维 / V 词表 / L 层 / HD 头维(H//num_heads)/ MaxPos 最大位置。</p>
+<ol><li>输入 <code>input_ids</code>:<code>[B, S]</code>(训练 S=N;推理 Decoding S=1)。</li><li><code>embed_tokens</code>:<code>[B, S] → [B, S, H]</code>(此时有语义、无位置)。</li><li>RoPE 预计算 buffer:<code>freqs_cos / freqs_sin</code> 形状 <code>[MaxPos, HD]</code>;按 <code>start_pos : start_pos + seq_length</code> 切片得 <code>position_embeddings</code>。</li></ol>
+<ul><li>训练/Prefill:start_pos=0,取前 N 个。</li><li>Decoding:start_pos=N,取第 N 个(长度 1)。</li></ul>
+<ol><li>start_pos 推断:有缓存则 <code>past_kv[0][0].shape[1]</code>,否则 0。</li><li>逐层进入 MiniMindBlock(共 L 层):</li></ol>
+<ul><li><code>[B, S, H] → RMSNorm → Attention(含 RoPE、KV Cache 更新) → +残差 → [B, S, H]</code></li><li><code>→ RMSNorm → FFN/MoE(MoE 层同时算 aux_loss) → +残差 → [B, S, H]</code></li><li>每层返回新 KV Cache <code>present</code>,形状 <code>[B, Past_Len+S, H_kv, HD]</code>。</li></ul>
+<ol><li>最终 <code>RMSNorm</code>:<code>[B, S, H]</code>。</li><li>汇总 MoE aux_loss:对所有 <code>isinstance(mlp, MOEFeedForward)</code> 层求和;无 MoE 则为 0。</li><li>MiniMindForCausalLM:</li></ol>
+<ul><li>Logits Slicing:<code>logits_to_keep=1</code> → <code>hidden[:, -1:, :]</code>;<code>=0</code> → 全量(训练)。</li><li><code>lm_head</code>:<code>[B, Sliced, H] → [B, Sliced, V]</code>。</li><li>训练 Shift:<code>shift_logits = logits[..., :-1, :]</code>、<code>shift_labels = labels[..., 1:]</code>,CrossEntropy 展平、ignore_index=-100。</li><li>输出 <code>CausalLMOutputWithPast</code>,挂 <code>output.aux_loss</code>;训练循环里 <code>total = loss + α·aux_loss</code>。</li></ul>
+<h2 id="sec-4">关键公式(如涉及)</h2>
+<ul><li>RMSNorm(无中心化):<code>RMSNorm(x) = x / RMS(x) · γ</code>,<code>RMS(x) = sqrt(mean(x²) + eps)</code>。</li><li>SwiGLU:<code>FFN(x) = (Swish(x·W_gate) ⊙ (x·W_up)) · W_down</code>。</li><li>MoE 输出:<code>y = SharedExperts(x) + Σ_{k∈TopK} g_k · RoutedExpert_k(x)</code>(g 为门控权重)。</li><li>Shift 因果预测:<code>logits[..., :-1, :] ↔ labels[..., 1:]</code>。</li><li>权重共享:<code>embed_tokens.weight ← lm_head.weight</code>(同 H×V 矩阵)。</li><li>训练总损失:<code>L_total = CE_loss + α · Σ_layers aux_loss</code>。</li></ul>
+<h2 id="sec-5">源码要点(Minimind 模型主体代码要点)</h2>
+<ul><li><strong>MiniMindModel.__init__</strong>:</li><li><code>embed_tokens = nn.Embedding(V, H)</code>;<code>dropout = nn.Dropout(config.dropout)</code>。</li><li><code>layers = nn.ModuleList([MiniMindBlock(l, config) for l in range(L)])</code>(层索引 l 传入,便于 YaRN 等分层逻辑)。</li><li><code>norm = RMSNorm(H, eps=config.rms_norm_eps)</code>(LLaMA 末尾标准做法)。</li><li><code>precompute_freqs_cis(dim=H//num_heads, end=max_position_embeddings, rope_base=rope_theta, rope_scaling=rope_scaling)</code>;<code>register_buffer(..., persistent=False)</code>——不写盘、可按 config 重算。</li><li><strong>MiniMindModel.forward</strong>:</li><li>HF 新版 Cache 对象降级:<code>if hasattr(past_key_values, 'layers'): past_key_values = None</code>(安全兜底)。</li><li><code>past_key_values = past_key_values or [None]*len(layers)</code>。</li><li>RoPE 切片:<code>position_embeddings = (freqs_cos[start:start+S], freqs_sin[start:start+S])</code>。</li><li>逐层 <code>zip(self.layers, past_key_values)</code>,收集 <code>presents</code>。</li><li><code>aux_loss = sum([l.mlp.aux_loss for l in layers if isinstance(l.mlp, MOEFeedForward)], hidden_states.new_zeros(1).squeeze())</code>——用零张量做起点,保证 Dense 模式返回标量 0。</li><li><strong>MiniMindForCausalLM.__init__</strong>:</li><li><code>self.model = MiniMindModel(config)</code>;<code>self.lm_head = nn.Linear(H, V, bias=False)</code>(无 bias,数值稳)。</li><li><code>self.model.embed_tokens.weight = self.lm_head.weight</code>(权重 tying,省 H×V 参数)。</li><li><strong>MiniMindForCausalLM.forward</strong>:</li><li><code>logits_to_keep</code> 支持 int 或 Tensor;int&gt;0 取 <code>slice(-k, None)</code>,<code>=0</code> 取全量。</li><li><code>sliced_hidden = hidden_states[:, slice_indices, :]</code>;<code>logits = self.lm_head(sliced_hidden)</code>。</li><li>训练分支 Shift + <code>F.cross_entropy(shift_logits.view(-1, V), shift_labels.view(-1), ignore_index=-100)</code>。</li><li>输出封装 <code>CausalLMOutputWithPast</code>,再 <code>output.aux_loss = aux_loss</code>。</li></ul>
+<h2 id="sec-6">作者独到见解/类比</h2>
+<ul><li>作者强调本章"不只是拼起来",而要交代拼装细节:buffer 的 persistent=False、KV Cache 的兼容降级、aux_loss 汇总起点用零张量、logits_to_keep 切片省掉 lm_head 无用矩阵乘等,都是工程落地要点。</li><li><strong>MiniMind 不是 LLaMA 简单复刻</strong>:LLaMA 骨架 + DeepSeek 式 MoE + YaRN 外推 + Gemma/GPT-2 式 Tied Embedding,是"现代 LLM 特性博物馆"。</li><li><strong>物理意义解释权重共享</strong>:"输入一个词"和"预测一个词"共用同一语义空间——既是参数节省,也是建模哲学。</li><li><strong>共享专家 vs Mixtral</strong>:作者认为 Shared+Routed 比纯 Routed(Mixtral)训练更稳、知识表达更强。</li><li><strong>Gemma 式轻量化</strong>:Tied Embedding 对中小模型尤其友好,大模型(如 LLaMA) Untied 是为表达力。</li></ul>
+<h2 id="sec-7">面试考点(为何这么组装、Pre-Norm 拮抗等)</h2>
+<ul><li><strong>Pre-Norm vs Post-Norm</strong>:Pre-Norm 残差通路梯度更直,深层不发散,大模型标配;Post-Norm 表达力略强但深层训练不稳,需 warmup/LayerScale。</li><li><strong>RMSNorm vs LayerNorm</strong>:去均值省算力、数值稳;面试常问"为何 LLaMA 选 RMSNorm"。</li><li><strong>GQA 必要性</strong>:KV Cache 显存随头数线性增长,GQA 让 KV 头远少于 Q 头,推理吞吐显著提升;<code>repeat_kv</code> 广播复制。</li><li><strong>YaRN 外推原理</strong>:动态调频,让训练长度外推到 32k 而不微调;与线性插值(需微调)对比。</li><li><strong>SwiGLU 为何优于 ReLU FFN</strong>:门控乘性带来更好收敛与性能,代价是多一个投影矩阵。</li><li><strong>Weight Tying 取舍</strong>:省 H×V 参数、正则化效果;但可能限制输出表达,大模型倾向 Untied。</li><li><strong>Shift Prediction 为何必须</strong>:因果 LM 第 t 步预测 t+1,通过错位让一次前向算出所有 token 的 loss(并行训练)。</li><li><strong>aux_loss 作用与求和方式</strong>:防 MoE 路由崩塌(所有 token 挤同一专家);训练 loss = 主 loss + α·aux_loss。</li><li><strong>logits_to_keep=1</strong>:推理 Decoding 只需最后 token,切片省 O(S·H·V) 的 lm_head 乘法。</li><li><strong>persistent=False 的 buffer</strong>:RoPE 表可由 config 重建,不占权重文件、避免加载冲突。</li><li><strong>ignore_index=-100</strong>:padding 不计入梯度。</li></ul>
+<div class="section-critique"><h2 id="sec-8">批判性批注</h2>
+<ul><li>本章代码注释详尽但<strong>未展示 MiniMindBlock 内部</strong>与 MoEGate 细节(留到前文或后续),单读此章难以独立复现 Block 与 Gate;笔记层面需补"Block = norm+attn+残+norm+mlp+残"的接口假设。</li><li><strong>权重共享的代价未讨论</strong>:对大词表(64k+)和 hidden 较小时,tying 会限制 lm_head 表达力,现代大模型(如 LLaMA-2/3)反而 Untied;作者归为"Gemma 式轻量化",但对"何时该 tying"缺少判据。</li><li><strong>YaRN "无需训练外推"偏乐观</strong>:实际常仍需少量长文本微调或 at least 验证 perplexity;文档表述偏 marketing。</li><li><strong>GQA "全系支持"表述</strong>:小模型 Q 头本就不多,GQA 收益边际化,且 <code>repeat_kv</code> 复制后计算量未必下降,主要是省 KV Cache 存储而非算力——文中未区分"显存"与"算力"。</li><li><strong>MoE 选 DeepSeek 风格</strong>合理,但 <code>n_shared_experts</code>、Top-K、aux_loss 系数 α 的取值与稳定性经验本章未给,面试追问会露怯。</li><li><strong>HF Cache 降级</strong>:<code>hasattr(past_key_values,'layers')</code> 直接清空缓存,是"防止报错"的兜底而非真正兼容,生产环境可能默默退化为无 Cache 推理,需告警而非静默。</li><li><strong>代码中 <code>self.config = config or MiniMindConfig()</code> 在 <code>super().__init__</code> 之前赋值</strong>,依赖父类构造是否使用 self.config,属脆弱写法,建议先 super 再设。</li></ul>
+</div><h2 id="sec-9">章内小思维导图</h2>
+<div class="mermaid-wrap"><div class="mermaid">graph TD
+  A[MiniMindForCausalLM&lt;br/&gt;顶层封装] --&gt; B[MiniMindModel 骨干]
+  A --&gt; C[lm_head Linear H→V bias=False]
+  A -.权重共享.-&gt; C
+  B --&gt; D[embed_tokens V→H]
+  B --&gt; E[layers: L × MiniMindBlock]
+  B --&gt; F[norm 最终 RMSNorm]
+  B --&gt; G[RoPE buffer&lt;br/&gt;freqs_cos/sin persistent=False]
+  E --&gt; H[Block Pre-Norm 双残差]
+  H --&gt; H1[RMSNorm]
+  H --&gt; H2[Attention: GQA+RoPE/YaRN+Flash]
+  H --&gt; H3[+残差]
+  H --&gt; H4[RMSNorm]
+  H --&gt; H5{Dense 或 MoE?}
+  H5 --&gt;|Dense| H6[FeedForward SwiGLU]
+  H5 --&gt;|Sparse| H7[MOEFeedForward&lt;br/&gt;Shared + Routed + MoEGate + aux_loss]
+  H --&gt; H8[+残差]
+  A --&gt; I[训练: Shift + CrossEntropy ignore=-100]
+  A --&gt; J[推理: logits_to_keep=1 切片]
+  A --&gt; K[总 loss = CE + α·Σ aux_loss]</div></div>
+<nav class="pager"><div class="pager__prev"><a href="06-moe.html"><span class="pager__label">← 上一篇</span>架构:混合专家模型(MoE)</a></div><div class="pager__next" style="text-align:right"><a href="08-infer-train-opt.html"><span class="pager__label">下一篇 →</span>架构(可选):大规模语言模型推理与训练优化机制</a></div></nav>
+</article>
+</main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', fontFamily: 'Noto Sans SC, sans-serif' });
+</script>
+<script>
+  if (window.hljs) hljs.highlightAll();
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ],
+      ignoredTags: ['script','noscript','style','textarea','pre','code'],
+      throwOnError: false
+    });
+  }
+</script>
+<script src="assets/nav.js"></script>
+</body>
+</html>

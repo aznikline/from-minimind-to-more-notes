@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>架构:归一化技术(原理、演进与前沿) — From Minimind to More</title>
+<meta name="description" content="归一化从 BN→LN→RMSNorm、Post→Pre、再到 DeepNorm/QK-Norm/Sandwich-Norm,本质是一场围绕&quot;梯度稳定性 vs 表达上限&quot;权衡的工程演进,LLM 默认选 Pre-RMSNorm 是稳定性优先的现实妥协。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
+</head>
+<body>
+<div class="progress-bar" role="progressbar" aria-label="阅读进度"></div>
+<div class="sidebar-backdrop"></div>
+<div class="layout">
+<aside class="sidebar" aria-label="目录">
+<button class="sidebar__toggle" aria-label="开关目录">☰</button>
+<div class="sidebar__brand"><a href="index.html">From Minimind<br/>to More</a></div>
+<div class="sidebar__sub">精读结构化笔记 · 16+1 篇</div>
+<nav class="toc"><div class="toc__group">基石</div>
+<div class="toc__item"><a class="toc__link " href="01-tokenizer.html"><span class="toc__num">01</span><span>基石:Tokenizer 你所需要知道的一切</span></a></div>
+<div class="toc__item"><a class="toc__link " href="02-design.html"><span class="toc__num">02</span><span>基石:Minimind 的设计目录</span></a></div>
+<div class="toc__item"><a class="toc__link " href="03-embedding-pos.html"><span class="toc__num">03</span><span>基石:Embedding 与位置编码</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">架构</div>
+<div class="toc__item"><a class="toc__link is-current" href="04-norm.html"><span class="toc__num">04</span><span>架构:归一化技术(原理、演进与前沿)</span></a><ul class="toc__sub"><li><a class="toc__sub-link" href="04-norm.html#sec-1">一句话精炼</a></li><li><a class="toc__sub-link" href="04-norm.html#sec-2">核心概念(BN/LN/GN、RMSNorm、Pre-Norm vs Post-Norm、DeepNorm 等)</a></li><li><a class="toc__sub-link" href="04-norm.html#sec-3">关键公式(LaTeX)</a></li><li><a class="toc__sub-link" href="04-norm.html#sec-4">演进脉络(归一化技术发展时间线/对比表)</a></li><li><a class="toc__sub-link" href="04-norm.html#sec-5">源码要点(Minimind 中用哪种,实现细节)</a></li><li><a class="toc__sub-link" href="04-norm.html#sec-6">作者独到见解/类比</a></li><li><a class="toc__sub-link" href="04-norm.html#sec-7">面试考点(Pre-Norm 为何主流、RMSNorm 相比 LN 的优势等)</a></li><li><a class="toc__sub-link" href="04-norm.html#sec-8">批判性批注</a></li><li><a class="toc__sub-link" href="04-norm.html#sec-9">篇内小思维导图(缩进树)</a></li></ul></div>
+<div class="toc__item"><a class="toc__link " href="05-kvcache-flashattn.html"><span class="toc__num">05</span><span>架构:大模型优化方法(KV Cache → Flash Attention)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="06-moe.html"><span class="toc__num">06</span><span>架构:混合专家模型(MoE)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="07-assemble.html"><span class="toc__num">07</span><span>架构:超级拼装(搭建自己的大模型)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="08-infer-train-opt.html"><span class="toc__num">08</span><span>架构(可选):大规模语言模型推理与训练优化机制</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">算法</div>
+<div class="toc__item"><a class="toc__link " href="09-rl-overview.html"><span class="toc__num">09</span><span>算法:大模型强化学习算法概览</span></a></div>
+<div class="toc__item"><a class="toc__link " href="10-pretrain.html"><span class="toc__num">10</span><span>算法:Minimind 的 Pretrain</span></a></div>
+<div class="toc__item"><a class="toc__link " href="11-sft.html"><span class="toc__num">11</span><span>算法:Minimind 的 SFT</span></a></div>
+<div class="toc__item"><a class="toc__link " href="12-dpo.html"><span class="toc__num">12</span><span>算法:Minimind 的 DPO</span></a></div>
+<div class="toc__item"><a class="toc__link " href="13-ppo.html"><span class="toc__num">13</span><span>算法:Minimind 的 PPO</span></a></div>
+<div class="toc__item"><a class="toc__link " href="14-grpo.html"><span class="toc__num">14</span><span>算法:Minimind 的 GRPO 及其变体</span></a></div>
+<div class="toc__item"><a class="toc__link " href="15-spo.html"><span class="toc__num">15</span><span>算法:Minimind 的 SPO</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">求职</div>
+<div class="toc__item"><a class="toc__link " href="16-interview-100.html"><span class="toc__num">16</span><span>求职:大模型八股 100 问</span></a></div>
+</nav>
+</aside>
+<main class="content">
+<article class="article">
+<div class="article__crumb"><a href="index.html">总图</a> / 架构</div>
+<h1 class="article__title">架构:归一化技术(原理、演进与前沿)</h1>
+<p class="article__lead">归一化从 BN→LN→RMSNorm、Post→Pre、再到 DeepNorm/QK-Norm/Sandwich-Norm,本质是一场围绕"梯度稳定性 vs 表达上限"权衡的工程演进,LLM 默认选 Pre-RMSNorm 是稳定性优先的现实妥协。</p>
+<h2 id="sec-1">一句话精炼</h2>
+<p>归一化从 BN→LN→RMSNorm、Post→Pre、再到 DeepNorm/QK-Norm/Sandwich-Norm,本质是一场围绕"梯度稳定性 vs 表达上限"权衡的工程演进,LLM 默认选 Pre-RMSNorm 是稳定性优先的现实妥协。</p>
+<h2 id="sec-2">核心概念(BN/LN/GN、RMSNorm、Pre-Norm vs Post-Norm、DeepNorm 等)</h2>
+<ul><li><strong>内部协变量偏移(Internal Covariate Shift)</strong>:深层网络前层参数更新导致后层输入分布漂移,随层数指数放大,触发激活饱和、收敛变慢。归一化把激活拉回零均值单位方差,降低 Loss 曲面 Lipschitz 常数,允许更大学习率。</li><li><strong>BN(Batch Normalization)</strong>:沿 batch 维统计,适合 CV 图像(通道结构规整)。</li><li>NLP 摒弃 BN 的三个本质原因:</li></ul>
+<ol><li><strong>变长序列 + Padding</strong> 扭曲 μ/σ 统计;</li><li><strong>小 micro-batch(可至 1)</strong> 估计噪声爆炸;</li><li><strong>Token 级跨样本无对应关系</strong>,BN 在 batch 维统计破坏 Token 独立性。</li></ol>
+<ul><li><strong>LN(Layer Normalization)</strong>:沿特征维对单样本统计,独立于 batch/seq。配套可学习 γ(缩放)、β(偏置),初始化 γ=1、β=0 近似恒等。两类不变性:</li><li>重中心化不变:LN(x+δ)=LN(x)</li><li>重缩放不变:LN(λx)=LN(x)→ 隐式 LR 衰减,防权重膨胀</li><li><strong>GN(Group Normalization)</strong>:把通道分组,介于 LN/BN 之间(本文未深入)。</li><li><strong>RMSNorm</strong>:去中心化 LN,只保留重缩放。LLaMA/Gemma/Mistral 标配,去 β,更轻量。</li><li><strong>Post-Norm</strong>:LN 在残差之后 x_{l+1}=LN(x_l+Sublayer(x_l))。BERT/原版 Transformer。需 Warm-up,梯度易爆/消,但性能上限略高。</li><li><strong>Pre-Norm</strong>:LN 在子层输入端 x_{l+1}=x_l+Sublayer(LN(x_l))。GPT-2/3、LLaMA 主流。主干恒等路径(高速公路效应),梯度稳定,可去 Warm-up;代价是主干方差随层累积→深层贡献被隐式缩小(1/L),即"深度诅咒(Curse of Depth)",深层退化为恒等映射。</li><li><strong>DeepNorm</strong>:改进 Post-Norm,引入 α&gt;1 放大主干 + β 缩放子层权重,使"有界更新"成立,扩展到 1000 层(DeepNet)。β 只作用于 FFN 全权重 + Attention 的 W_V/W_O,W_Q/W_K 不缩放(保注意力分数尺度)。</li><li><strong>QK-Norm</strong>:对 Q、K 各做 LN/L2,用柯西-施瓦茨约束点积上界,治 Attention 熵坍塌(Logits 可达 1e4,Softmax 趋 one-hot,梯度消失)。ViT-22B 稳定训练关键 trick。</li><li><strong>变体</strong>:QKV-Norm(NormFormer,连 V 也归一化)、Softmax Capping(截断 logits 到 [-30,30],Mistral 采用)。</li><li><strong>Sandwich-Norm</strong>:CogView 提出,在 Pre-Norm 残差分支末端再加一个 LN,x_{l+1}=x_l+LN(Sublayer(LN(x_l))),二次归一化,治图像 token 数值溢出,FP16 稳定训练。</li><li><strong>NormFormer</strong>:Pre-LN + Post-Attention LN + Head-Scaling 三重过归一化,1.3B 实验达目标 PPL 快 24%。</li></ul>
+<h2 id="sec-3">关键公式(LaTeX)</h2>
+<p><strong>LayerNorm</strong>: $$\mu=\frac{1}{d}\sum_{i=1}^{d}x_i,\quad \sigma^2=\frac{1}{d}\sum_{i=1}^{d}(x_i-\mu)^2$$ $$\hat{x}_i=\frac{x_i-\mu}{\sqrt{\sigma^2+\epsilon}},\quad y_i=\gamma_i\hat{x}_i+\beta_i$$ (γ=1, β=0 初始化 → 恒等;ε≈1e-5 防除零)</p>
+<p><strong>RMSNorm</strong>: $$\text{RMS}(\mathbf{x})=\sqrt{\frac{1}{d}\sum_{i=1}^{d}x_i^2+\epsilon}$$ $$\bar{x}_i=\frac{x_i}{\text{RMS}(\mathbf{x})}\cdot\gamma_i$$ (LLaMA/Mistral 去 β;ε 加在平方和均值后、开根前;Gemma 修正:<code>RMSNorm(x)*(1+γ)</code>,γ≈0 时近似恒等)</p>
+<p><strong>Post-Norm</strong>: $$\mathbf{x}_{l+1}=LN(\mathbf{x}_l+\text{Sublayer}(\mathbf{x}_l))$$</p>
+<p><strong>Pre-Norm</strong>: $$\mathbf{x}_{l+1}=\mathbf{x}_l+\text{Sublayer}(LN(\mathbf{x}_l))$$</p>
+<p><strong>DeepNorm(有界更新)</strong>: $$\mathbf{x}_{l+1}=LN(\alpha\cdot\mathbf{x}_l+G_l(\mathbf{x}_l,\theta_l)),\quad \alpha&gt;1$$ 残差缩放 α 放大主干、β 缩放子层权重,使每层更新期望有界。</p>
+<p><strong>DeepNorm 初始化规则</strong>:</p>
+<ul><li>Encoder-only (N 层):$\alpha=(2N)^{1/4},\ \beta=(8N)^{-1/4}$</li><li>Decoder-only (M 层):$\alpha=(2M)^{1/4},\ \beta=(8M)^{-1/4}$</li><li>Enc-Dec (N Enc / M Dec):</li><li>Enc: $\alpha=0.81(N^4M)^{1/16},\ \beta=0.87(N^4M)^{-1/16}$</li><li>Dec: $\alpha=(3M)^{1/4},\ \beta=(12M)^{-1/4}$</li><li>β 作用于 FFN 所有权重 + Attention 的 $W_V, W_O$;$W_Q, W_K$ 不缩放。</li></ul>
+<p><strong>QK-Norm</strong>: $$\mathbf{q}'=LN(\mathbf{q}),\quad \mathbf{k}'=LN(\mathbf{k})$$ $$\text{Attn}=\text{Softmax}\!\left(\frac{\mathbf{q}'(\mathbf{k}')^\top}{\sqrt{d}}\right)\mathbf{v}$$</p>
+<p><strong>Sandwich-Norm</strong>: $$\mathbf{x}_{l+1}=\mathbf{x}_l+LN(\text{Sublayer}(LN(\mathbf{x}_l)))$$</p>
+<h2 id="sec-4">演进脉络(归一化技术发展时间线/对比表)</h2>
+<table><thead><tr><th>阶段</th><th>技术/方案</th><th>架构位置</th><th>解决的核心痛点</th><th>代表模型</th><th>局限</th></tr></thead><tbody><tr><td>2015</td><td>BatchNorm</td><td>—</td><td>CV 内部协变量偏移</td><td>ResNet 等 CV</td><td>NLP 变长/小 batch 失效</td></tr><tr><td>2016</td><td>LayerNorm</td><td>—</td><td>NLP 变长/小 batch,特征维统计</td><td>Transformer/BERT 基石</td><td>双扫描,内存带宽受限</td></tr><tr><td>2017 原 Transformer / BERT</td><td>Post-Norm</td><td>残差后</td><td>每层输入标准化,性能上限高</td><td>Original Transformer, BERT</td><td>需 Warm-up,梯度爆/消</td></tr><tr><td>2019 GPT-2</td><td>Pre-Norm</td><td>子层前</td><td>高速公路恒等路径,梯度稳定</td><td>GPT-2/3, LLaMA, PaLM, Mistral</td><td>深度诅咒,深层退化</td></tr><tr><td>2019</td><td>RMSNorm</td><td>—</td><td>去 centering,单次扫描省带宽</td><td>LLaMA, Gemma, Mistral</td><td>表达力略弱于 LN(可忽略)</td></tr><tr><td>2022</td><td>DeepNorm</td><td>Post 变体(α 放大主干)</td><td>千层超深,有界更新</td><td>DeepNet(1000 层)</td><td>需 α/β 按层规模调参</td></tr><tr><td>2023</td><td>QK-Norm</td><td>Attention 内</td><td>熵坍塌,logits→1e4</td><td>ViT-22B, 多模态</td><td>额外算子</td></tr><tr><td>—</td><td>Sandwich-Norm</td><td>Pre + 末端 LN</td><td>图像 token 数值溢出</td><td>CogView</td><td>双 LN 开销</td></tr><tr><td>—</td><td>NormFormer</td><td>Pre + Post-Attn LN + Head scaling</td><td>加速收敛</td><td>研究模型</td><td>参数量增加</td></tr><tr><td>—</td><td>Softmax Capping</td><td>Softmax 前</td><td>双保险防 logits 爆</td><td>Mistral</td><td>截断阈值需调</td></tr></tbody></table>
+<h2 id="sec-5">源码要点(Minimind 中用哪种,实现细节)</h2>
+<p>Minimind(<code>model/model_minimind.py</code>)采用 <strong>RMSNorm</strong>(Pre-Norm 架构,与 LLaMA 同款)。</p>
+<p>实现细节要点(对应文中代码):</p>
+<ul><li><code>self.weight = nn.Parameter(torch.ones(dim))</code>:仅保留缩放 γ,无 β,与 LLaMA/Mistral 一致。</li><li><code>eps=1e-5</code> 默认(注:LLaMA 官方常用 1e-6,文中 minimind 代码取 1e-5)。</li><li><code>_norm</code>:<code>x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)</code></li><li>用 <code>torch.rsqrt</code> 直接算 <code>1/sqrt</code>,比先 sqrt 再除更快;</li><li><code>.mean(-1, keepdim=True)</code> 在最后一维(特征维)规约并保维。</li><li><strong>精度策略(关键)</strong>:<code>forward</code> 中 <code>self._norm(x.float()).type_as(x)</code>——先 upcast 到 float32 计算归一化(数值稳定),再 cast 回原精度(fp16/bf16),避免 fp16 下 x² 求和溢出。这是 LLM 推理稳定性的工程必备。</li><li>仿射变换在后:<code>self.weight * self._norm(...)</code>,即先归一再缩放,符合 RMSNorm 公式。</li><li>注释明确点出与 LN 的差异:"RMSNorm 不减去均值,只进行缩放,计算更快"。</li></ul>
+<h2 id="sec-6">作者独到见解/类比</h2>
+<ul><li><strong>"高速公路(Highway)效应"</strong>:Pre-Norm 的残差主干是一条恒等高速公路,梯度可无损直通底层,非线性 LN 不挡道——这是现代大模型能训深的关键隐喻。</li><li><strong>"深度诅咒(Curse of Depth)"</strong>:Pre-Norm 主干方差随层线性累积,而残差分支经 LN 后方差被重置为 1,深层对主干贡献被隐式缩成 1/L,深网退化为恒等映射——与 ResNet 的"恒等越好"直觉相反,这里"恒等太好"反而是病。</li><li><strong>RMSNorm 的反思</strong>:LN 的成功主要靠"重缩放不变性"而非"重中心化",中心化在深网激活均值≈0 时收益微乎其微,却多一次全向量扫描——"去中心化"是极简主义的胜利。</li><li><strong>内存带宽视角</strong>:LayerNorm 是 memory-bandwidth bound,瓶颈不在 FLOPs 而在两次显存扫描+同步屏障;RMSNorm 单次扫描+易算子融合,在 FlashAttention/vLLM 等推理框架中被深度优化——这是"工程收益 &gt;&gt; 理论 FLOPs 减少"的典型。</li><li><strong>DeepNorm 的"有界更新"</strong>:让每层更新期望有界,本质是用 α 放大主干、β 缩放子层,把 Post-Norm 的高性能与 Pre-Norm 的稳定性"杂交"。</li><li><strong>QK-Norm 用柯西-施瓦茨</strong>:点积上界 = 模长乘积,归一化 Q、K 模长即锁死 logits 上界,治 1e4 量级爆炸——数学不变式直接变工程 trick。</li></ul>
+<h2 id="sec-7">面试考点(Pre-Norm 为何主流、RMSNorm 相比 LN 的优势等)</h2>
+<ol><li><strong>为何 NLP 不用 BN?</strong> 变长+Padding 扭曲统计;小 micro-batch 噪声大;Token 跨样本无对应关系,破坏独立性。</li><li><strong>Pre-Norm 为何成为主流?</strong> 高速公路恒等路径使梯度稳定,可去 Warm-up,训超深大模型成本低;GPT-2/3、LLaMA、PaLM 均采用。代价是深层贡献衰减(深度诅咒)、性能上限略低于 Post-Norm。</li><li><strong>Post-Norm 性能为何略高却不用?</strong> 每层输入标准化、充分利用非线性表达,理论上限高;但梯度穿 LN 易爆/消,必须 Warm-up,大模型训练成本不可接受。</li><li><strong>RMSNorm 相比 LN 的优势?</strong> (a)去 centering,单次扫描省内存带宽(推理快 10%-40%);(b)去 β 减参数、简化算子;(c)易 Kernel Fusion,在 FlashAttention/vLLM 中深度优化;(d)实验表明重缩放不变性才是 LN 成功主因,中心化可省。</li><li><strong>Gemma 的 RMSNorm 为何写成 <code>(1+γ)</code>?</strong> γ≈0 初始化时输出≈输入,近似恒等,利于深网初始信号传播,保留 Pre-Norm 直通特性。</li><li><strong>DeepNorm 如何把网络做到 1000 层?</strong> α&gt;1 放大主干 + β 按层规模缩放子层权重(FFN 全权重 + W_V/W_O,W_Q/W_K 不缩放),使每层更新期望有界;α/β 公式按 Enc/Dec/Enc-Dec 三种架构分别给出。</li><li><strong>什么是注意力熵坍塌?如何治?</strong> 训练中 Q·K^T 可达 1e4,Softmax 饱和趋 one-hot,梯度消失。治法:QK-Norm(锁模长乘积上界)、QKV-Norm、Softmax Capping(截断到 [-30,30])。</li><li><strong>Sandwich-Norm 解决什么?</strong> 图像 token 数值敏感,Pre-Norm 残差输出仍会溢出;在残差分支末端再加 LN 二次归一化,使 CogView 在 FP16 稳定训练。</li><li><strong>LN 的两个不变性?</strong> 重中心化 LN(x+δ)=LN(x);重缩放 LN(λx)=LN(x),后者隐式 LR 衰减防权重膨胀。</li><li><strong>Minimind RMSNorm 为何先 float32 再 type_as?</strong> fp16 下 x² 求和易溢出,upcast 到 fp32 保数值稳定,再回原精度省显存。</li></ol>
+<div class="section-critique"><h2 id="sec-8">批判性批注</h2>
+<ul><li><strong>"内部协变量偏移"叙事过时</strong>:现代研究(如 Santurkar et al. 2018)对 ICS 是否真是 BN 成功主因存疑,归一化真正作用更可能是平滑 Loss 曲面、降低 Lipschitz 常数。文中把 ICS 当唯一动因略简化,但作为教学引入可接受。</li><li><strong>"RMSNorm 表达力弱于 LN"未量化</strong>:文中说 LN 理论上限略高、RMSNorm 表达力略弱,但未给出 PPL/下游任务对照实验数据,仅以"消融发现重缩放才是主因"立论,属经验性结论而非严格证明。LLaMA 系实证已表明差异可忽略。</li><li><strong>"Post-Norm 性能上限略高"缺乏机制解释</strong>:仅归因于"每层输入标准化、充分利用非线性",未区分是优化景观更优还是最终收敛点更优,二者不能混为一谈。</li><li><strong>DeepNorm 的 α/β 公式偏 cargo-cult</strong>:公式来自理论推导但文中未展示推导,读者易当成"查表背参数";且 1000 层实验在多语言翻译这种任务上,BLEU+5 是否能推广到通用 LLM 未验证,DeepNet 后续在主流 LLM 中并未普及,说明其工程价值有限。</li><li><strong>QK-Norm 与 Softmax Capping 的副作用未讨论</strong>:截断会改变注意力分布形状,Capping 到 [-30,30] 在长上下文/稀疏注意力下可能损失表达力;文中只谈稳定不谈代价。</li><li><strong>Sandwich-Norm / NormFormer 适用边界模糊</strong>:都是特定场景(图像生成、1.3B 研究)产物,文中列为"专用变体"但未说明何时该用、何时过度,实践者易误以为"越多 Norm 越好"。</li><li><strong>Minimind eps=1e-5 与 LLaMA 官方 1e-6 不一致</strong>:文中代码注释未点出这一差异,作为教学实现可,但若读者照搬到生产,eps 选择会影响数值稳定性,应标注。</li><li><strong>"性能上限略高/略低"量级未给</strong>:Post vs Pre 的 BLEU/PPL 差距通常 &lt;1%,文中用"略"一笔带过,易让读者高估该差异的重要性,从而错误选择 Post-Norm。</li><li><strong>缺少对 DiT/AdaLN 等新趋势提及</strong>:作为"前沿架构"章节,未涉及 diffusion transformer 中的 adaptive LN 等正在兴起的归一化设计,前沿性略有欠缺。</li></ul>
+</div><h2 id="sec-9">篇内小思维导图(缩进树)</h2>
+<pre><code>归一化技术
+├── 解决的问题
+│   ├── 内部协变量偏移(ICS)
+│   └── 深层梯度爆/消、Loss 曲面不平滑
+├── 按"沿哪个维统计"分
+│   ├── BN(CV, batch 维)→ NLP 失效(变长/小 batch/Token 独立)
+│   ├── LN(NLP, 特征维)→ 双不变性(re-center / re-scale)
+│   └── GN(分组, 介于两者)
+├── 按架构位置分
+│   ├── Post-Norm(BERT/原 Transformer)→ 性能略高, 需 Warm-up, 梯度脆
+│   └── Pre-Norm(GPT-2/3, LLaMA)→ 高速公路恒等路径, 主流, 但深度诅咒
+├── LN 的效率简化
+│   └── RMSNorm(去 centering, 去 β)→ LLaMA/Gemma/Mistral 标配
+│       ├── 单次扫描省内存带宽(推理快 10-40%)
+│       └── Gemma 修正: (1+γ) 近似恒等初始化
+├── 超深/超大场景专用
+│   ├── DeepNorm(α 放大主干 + β 缩放子层, 1000 层 DeepNet)
+│   ├── QK-Norm(治注意力熵坍塌, ViT-22B)
+│   │   └── 变体: QKV-Norm, Softmax Capping(Mistral)
+│   ├── Sandwich-Norm(CogView 图像, 二次归一化)
+│   └── NormFormer(三重过归一化, 加速收敛)
+└── Minimind 实践
+    └── RMSNorm + Pre-Norm
+        ├── weight=ones, 无 β
+        ├── torch.rsqrt 加速
+        └── float32 计算 → type_as 回原精度(数值稳定)</code></pre>
+<nav class="pager"><div class="pager__prev"><a href="03-embedding-pos.html"><span class="pager__label">← 上一篇</span>基石:Embedding 与位置编码</a></div><div class="pager__next" style="text-align:right"><a href="05-kvcache-flashattn.html"><span class="pager__label">下一篇 →</span>架构:大模型优化方法(KV Cache → Flash Attention)</a></div></nav>
+</article>
+</main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', fontFamily: 'Noto Sans SC, sans-serif' });
+</script>
+<script>
+  if (window.hljs) hljs.highlightAll();
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ],
+      ignoredTags: ['script','noscript','style','textarea','pre','code'],
+      throwOnError: false
+    });
+  }
+</script>
+<script src="assets/nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>算法:Minimind 的 SPO — From Minimind to More</title>
+<meta name="description" content="SPO 用一个纯数学的&quot;指数移动平均 + Beta 分布&quot;历史基线追踪器（&lt;code&gt;AutoAdaptiveValueTracker&lt;/code&gt;）替代 PPO 的 Critic 神经网络，同时像 PPO 一样每条 Prompt 只采样 1 个回答，从而既省显存又省推理算力，并">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
+</head>
+<body>
+<div class="progress-bar" role="progressbar" aria-label="阅读进度"></div>
+<div class="sidebar-backdrop"></div>
+<div class="layout">
+<aside class="sidebar" aria-label="目录">
+<button class="sidebar__toggle" aria-label="开关目录">☰</button>
+<div class="sidebar__brand"><a href="index.html">From Minimind<br/>to More</a></div>
+<div class="sidebar__sub">精读结构化笔记 · 16+1 篇</div>
+<nav class="toc"><div class="toc__group">基石</div>
+<div class="toc__item"><a class="toc__link " href="01-tokenizer.html"><span class="toc__num">01</span><span>基石:Tokenizer 你所需要知道的一切</span></a></div>
+<div class="toc__item"><a class="toc__link " href="02-design.html"><span class="toc__num">02</span><span>基石:Minimind 的设计目录</span></a></div>
+<div class="toc__item"><a class="toc__link " href="03-embedding-pos.html"><span class="toc__num">03</span><span>基石:Embedding 与位置编码</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">架构</div>
+<div class="toc__item"><a class="toc__link " href="04-norm.html"><span class="toc__num">04</span><span>架构:归一化技术(原理、演进与前沿)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="05-kvcache-flashattn.html"><span class="toc__num">05</span><span>架构:大模型优化方法(KV Cache → Flash Attention)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="06-moe.html"><span class="toc__num">06</span><span>架构:混合专家模型(MoE)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="07-assemble.html"><span class="toc__num">07</span><span>架构:超级拼装(搭建自己的大模型)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="08-infer-train-opt.html"><span class="toc__num">08</span><span>架构(可选):大规模语言模型推理与训练优化机制</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">算法</div>
+<div class="toc__item"><a class="toc__link " href="09-rl-overview.html"><span class="toc__num">09</span><span>算法:大模型强化学习算法概览</span></a></div>
+<div class="toc__item"><a class="toc__link " href="10-pretrain.html"><span class="toc__num">10</span><span>算法:Minimind 的 Pretrain</span></a></div>
+<div class="toc__item"><a class="toc__link " href="11-sft.html"><span class="toc__num">11</span><span>算法:Minimind 的 SFT</span></a></div>
+<div class="toc__item"><a class="toc__link " href="12-dpo.html"><span class="toc__num">12</span><span>算法:Minimind 的 DPO</span></a></div>
+<div class="toc__item"><a class="toc__link " href="13-ppo.html"><span class="toc__num">13</span><span>算法:Minimind 的 PPO</span></a></div>
+<div class="toc__item"><a class="toc__link " href="14-grpo.html"><span class="toc__num">14</span><span>算法:Minimind 的 GRPO 及其变体</span></a></div>
+<div class="toc__item"><a class="toc__link is-current" href="15-spo.html"><span class="toc__num">15</span><span>算法:Minimind 的 SPO</span></a><ul class="toc__sub"><li><a class="toc__sub-link" href="15-spo.html#sec-1">一句话精炼</a></li><li><a class="toc__sub-link" href="15-spo.html#sec-2">核心概念（SPO 算法定位与动机；与 PPO/DPO/GRPO 的关系；self-play / 序列级优化等如出现）</a></li><li><a class="toc__sub-link" href="15-spo.html#sec-3">关键公式（LaTeX:SPO 的目标函数、与 GRPO 的差异项）</a></li><li><a class="toc__sub-link" href="15-spo.html#sec-4">关键算法/流程（SPO 训练流程、采样/配对/优化方式）</a></li><li><a class="toc__sub-link" href="15-spo.html#sec-5">源码要点（Minimind SPO 代码要点）</a></li><li><a class="toc__sub-link" href="15-spo.html#sec-6">作者独到见解/类比</a></li><li><a class="toc__sub-link" href="15-spo.html#sec-7">面试考点（SPO 新在哪、为何提出、相对 GRPO 的改进）</a></li><li><a class="toc__sub-link" href="15-spo.html#sec-8">批判性批注（注意:SPO 是很新算法,核对作者描述是否准确,标注任何存疑处）</a></li><li><a class="toc__sub-link" href="15-spo.html#sec-9">筐内小思维导图（mermaid 或缩进树）</a></li></ul></div>
+</nav>
+<nav class="toc"><div class="toc__group">求职</div>
+<div class="toc__item"><a class="toc__link " href="16-interview-100.html"><span class="toc__num">16</span><span>求职:大模型八股 100 问</span></a></div>
+</nav>
+</aside>
+<main class="content">
+<article class="article">
+<div class="article__crumb"><a href="index.html">总图</a> / 算法</div>
+<h1 class="article__title">算法:Minimind 的 SPO</h1>
+<p class="article__lead">SPO 用一个纯数学的"指数移动平均 + Beta 分布"历史基线追踪器（<code>AutoAdaptiveValueTracker</code>）替代 PPO 的 Critic 神经网络，同时像 PPO 一样每条 Prompt 只采样 1 个回答，从而既省显存又省推理算力，并用"KL 半衰期动态动量 ρ"在数学层面实现策略突变的自动刹车。</p>
+<h2 id="sec-1">一句话精炼</h2>
+<p>SPO 用一个纯数学的"指数移动平均 + Beta 分布"历史基线追踪器（<code>AutoAdaptiveValueTracker</code>）替代 PPO 的 Critic 神经网络，同时像 PPO 一样每条 Prompt 只采样 1 个回答，从而既省显存又省推理算力，并用"KL 半衰期动态动量 ρ"在数学层面实现策略突变的自动刹车。</p>
+<h2 id="sec-2">核心概念（SPO 算法定位与动机；与 PPO/DPO/GRPO 的关系；self-play / 序列级优化等如出现）</h2>
+<ul><li><strong>定位与动机</strong>：SPO（Self-Play Policy Optimization，按 Minimind 代码语境命名，见批判性批注）是 PPO 与 GRPO 之间的"折中派"。</li><li>PPO：Actor + Critic + Reference + Reward 四模型，显存极贵。</li><li>GRPO：去掉 Critic，但依赖组内采样（每个 Prompt 生成 4~8 个回答）做相对优势，推理算力成倍上升。</li><li>SPO：既不要 Critic（省显存），又只对每条 Prompt 采样 1 个回答（省算力），用一个标量数学追踪器把"历史平均分"当 Baseline。</li><li><strong>Baseline 来源对比</strong>：</li><li>PPO → 神经网络（Critic）猜价值。</li><li>GRPO → 组内多人平均分。</li><li>SPO → <code>AutoAdaptiveValueTracker</code> 维护的 Beta 分布期望值 α/(α+β)。</li><li><strong>稳定机制对比</strong>：</li><li>PPO 用 <code>torch.clamp</code> / clip-range 硬截断。</li><li>SPO 用"KL 半衰期动态动量 ρ"做自适应遗忘/保留，策略剧变时历史权重自动腰斩，基线快速跟上，从而在数学上"踩刹车"，声称不需要硬 clip 即可稳定训练（见批判性批注）。</li><li><strong>self-play / 序列级</strong>：Minimind 代码里的 SPO 是"单样本 + 全局历史基线"的序列级策略梯度，并非真正的 self-play 对抗博弈；"Self-Play"更多体现在"用自己过去的平均分当对手"的语义包装上（存疑，见批注）。优势是<strong>序列级</strong>（每条回答一个 Advantage 标量），再通过 <code>unsqueeze(1)</code> 广播到 token 级。</li></ul>
+<h2 id="sec-3">关键公式（LaTeX:SPO 的目标函数、与 GRPO 的差异项）</h2>
+<p><strong>基线（Beta 分布期望）</strong> $$ \text{Baseline} = \frac{\alpha}{\alpha + \beta} $$</p>
+<p><strong>动量 ρ 的动态半衰期衰减（核心刹车）</strong> $$ \rho = \mathrm{clip}\left(2^{-\,\text{KL}/D_{half}},\ \rho_{lower},\ \rho_{upper}\right), \quad \text{KL} = \left|\text{old\_mean\_logprob} - \text{cur\_mean\_logprob}\right| $$</p>
+<ul><li>默认 $D_{half}=0.06$：当 KL 恰为 0.06 时 $\rho=2^{-1}=0.5$。</li><li>$\rho_{lower}=0.5$（防失忆），$\rho_{upper}=0.96$（防冻结，保证至少 4% 新经验进入）。</li></ul>
+<p><strong>EMA 更新 α/β（伪计数 N\_init = 1/(1-clip\_lower)=2）</strong> $$ \alpha_{new} = \rho\,\alpha_{old} + \bar r_{norm}, \qquad \beta_{new} = \rho\,\beta_{old} + (1 - \bar r_{norm}) $$ 其中 $\bar r_{norm}$ 为本 batch 归一化奖励均值，奖励归一化 $\in[0,1]$：$r_{norm}=(r+3)/(2\cdot 3)$。</p>
+<p><strong>优势估计（与 GRPO 的关键差异）</strong> $$ A = r - \text{Baseline}_{denorm}, \quad \text{Baseline}_{denorm} = \text{Baseline}\cdot 2\cdot scale - scale $$</p>
+<ul><li>GRPO：$A_i = r_i - \bar r_{group}$（组内相对，依赖多样本）。</li><li>SPO：$A_i = r_i - \text{全局历史 EMA 基线}$（依赖单样本 + 历史统计），这正是"去 Critic 且去 Group Sampling"的代价。</li></ul>
+<p><strong>token 级 KL（Schulman 正定估计器）</strong> $$ \text{KL}_{token} = \exp(\Delta) - \Delta - 1, \quad \Delta = \log\pi_{ref} - \log\pi_{\theta} $$</p>
+<p><strong>最终策略梯度 Loss</strong> $$ L_{policy} = \frac{1}{B}\sum_{b}\frac{\sum_{t}\left[-\log\pi_{\theta}(a_{t})\cdot A + \beta\, \text{KL}_{token}\right]\cdot m_{t}}{\sum_{t} m_{t}} $$</p>
+<ul><li>第一项为带负号的策略梯度（最大化 $\log\pi\cdot A$）；</li><li>第二项为 KL 惩罚（防 reward hacking），$\beta$ 通常取 0.02 量级。</li><li>序列级 Advantage 通过 <code>advantages.unsqueeze(1)</code> 广播到该句所有 token。</li></ul>
+<h2 id="sec-4">关键算法/流程（SPO 训练流程、采样/配对/优化方式）</h2>
+<ol><li><strong>Rollout（单样本生成）</strong></li></ol>
+<ul><li><code>tokenizer(padding_side="left")</code>：左填充保证自回归末尾对齐。</li><li><code>prompt_inputs[:, -max_seq_len:]</code>：左侧截断防 OOM，保留靠近生成位的上下文。</li><li><code>model.generate(num_return_sequences=1, do_sample=True, temperature=0.8)</code>：<strong>每条 Prompt 只生成 1 个回答</strong>，与 GRPO 的多采样不同。</li><li>切片 <code>completion_ids = outputs[:, P:]</code> 丢弃 Prompt，仅保留 Response。</li></ul>
+<ol><li><strong>提取 token 级对数概率</strong></li></ol>
+<ul><li><code>get_per_token_logps</code>：前向得 logits，<code>[:, :-1, :]</code> 错位丢弃最后一个预测（对齐位置）。</li><li><code>log_softmax</code> + <code>torch.gather</code>：按实际生成的 token id 从词表分布里"查字典"抠出该 token 的 $\log\pi$。</li><li>Actor 模型带梯度（<code>autocast_ctx</code>，无 <code>no_grad</code>）；Ref 模型 <code>torch.no_grad()</code>。MoE 额外前向取 <code>aux_loss</code>。</li></ul>
+<ol><li><strong>计算优势</strong></li></ol>
+<ul><li><code>calculate_rewards</code>：正则检查格式（<code>&lt;think&gt;</code>/<code>&lt;answer&gt;</code>）+ 外部 Reward Model 打分，$r\in[-3,3]$。</li><li><code>value_tracker.get_baselines(B)</code> 取 Beta 期望 $\in[0,1]$，反归一化回 $[-3,3]$。</li><li>$A = r - \text{baseline}_{denorm}$，再 <code>clamp(-5, 5)</code> 防梯度爆炸。</li></ul>
+<ol><li><strong>构造掩码</strong></li></ol>
+<ul><li><code>is_eos</code> → <code>argmax</code> 找第一个 EOS 位置，无 EOS 则默认末尾。</li><li>广播 <code>arange &lt;= eos_idx</code> 生成 <code>[B,R]</code> 的 0/1 mask，剔除 EOS 之后的 pad。</li></ul>
+<ol><li><strong>Loss + 反向传播</strong></li></ol>
+<ul><li><code>kl_div = ref - actor</code>；<code>per_token_kl = exp(kl_div) - kl_div - 1</code>（Schulman 估计器，恒正）。</li><li><code>per_token_loss = -per_token_logps <em> advantages.unsqueeze(1) + beta </em> per_token_kl</code>。</li><li><code>(per_token_loss * mask).sum(1) / mask.sum(1)</code> 变长序列求均值，再 <code>.mean()</code> 得标量。</li><li><code>+ aux_loss</code>，<code>/ accumulation_steps</code> 梯度累积，<code>backward()</code>。</li></ul>
+<ol><li><strong>更新 Tracker（关键时序）</strong></li></ol>
+<ul><li>反向传播后调用 <code>value_tracker.update(rewards, per_token_logps.detach(), response_masks)</code>。</li><li><code>.detach()</code> 必须有：Tracker 不参与梯度图。</li><li>内部：算 <code>mean_logprob</code> → <code>compute_rho</code> → EMA 更新 α/β，并把当前 <code>mean_logprob</code> 存为 <code>old_mean_logprob</code> 供下一 batch 算 KL。</li></ul>
+<ol><li><strong>收尾</strong></li></ol>
+<ul><li>每 <code>accumulation_steps</code> 步：<code>clip_grad_norm_</code> + <code>optimizer.step()</code> + <code>scheduler.step()</code> + <code>zero_grad()</code>。</li><li>日志上报 <code>policy_loss / reward / kl / rho / baseline</code>。</li><li>保存：剥离 DDP(<code>.module</code>) 与 <code>torch.compile</code>(<code>_orig_mod</code>)，<code>state_dict</code> 转 <code>.half().cpu()</code> 存盘 + <code>lm_checkpoint</code> 存优化器状态。</li><li><code>del</code> 中间张量释放显存（同时驻留 Actor/Ref/Reward 三模型）。</li></ul>
+<h2 id="sec-5">源码要点（Minimind SPO 代码要点）</h2>
+<ul><li><strong><code>AutoAdaptiveValueTracker</code> 类</strong></li><li>初始化：<code>rho_mode='kl'</code>、<code>rho_const=0.9</code>、<code>D_half=0.06</code>、<code>clip_lower=0.5</code>、<code>clip_upper=0.96</code>；伪计数 <code>N_init=2</code>，<code>alpha=beta=1.0</code>，<code>old_mean_logprob=None</code>。</li><li><code>compute_rho(cur_mean_logprob)</code>：冷启动返回 <code>rho_const</code>；否则 <code>kl=abs(old-cur)</code>，<code>rho=2**(-kl/D_half)</code>，再 <code>max(min(rho,0.96),0.5)</code>。</li><li><code>update(rewards, cur_logprobs, response_masks)</code>：</li><li><code>mean_logprob = (cur_logprobs*mask).sum()/mask.sum()</code>（仅 Response 部分，屏蔽 Prompt/pad）。</li><li>奖励归一化 <code>scale=3.0</code>，<code>(r+3)/6</code>。</li><li><code>alpha = rho<em>alpha + avg_norm_reward</code>；<code>beta = rho</em>beta + (1-avg_norm_reward)</code>；返回 <code>rho</code>。</li><li><code>get_baselines(n)</code>：返回 <code>alpha/(alpha+beta)</code> 复制 n 份。</li></ul>
+<ul><li><strong><code>spo_train_epoch</code> 关键点</strong></li><li><code>num_return_sequences=1</code>（区别 GRPO 的核心）。</li><li><code>get_per_token_logps</code>：<code>logits_to_keep=n_keep+1</code> 显存优化 + <code>[:,:,:-1]</code> 错位 + <code>gather</code> 取实际 token 概率。</li><li>优势是<strong>序列级标量</strong> <code>advantages.unsqueeze(1)</code> 广播到 token。</li><li>KL 用 <code>exp(kl_div)-kl_div-1</code>（Schulman 正定估计），而非平方差。</li><li>Loss = 序列平均（变长 mask 处理）后 batch 平均 + <code>aux_loss</code>，再 <code>/accumulation_steps</code>。</li><li>Tracker 更新在 <code>backward()</code> 之后、下一步之前；传入 <code>per_token_logps.detach()</code>。</li><li>保存"剥洋葱"：<code>.module</code>（DDP）→ <code>_orig_mod</code>（compile）→ <code>.half().cpu()</code>。</li></ul>
+<h2 id="sec-6">作者独到见解/类比</h2>
+<ul><li>"既像 GRPO 不要 Critic（省显存），又像 PPO 只采 1 个回答（省算力）"——一句话定位 SPO 的生态位。</li><li>把 <code>AutoAdaptiveValueTracker</code> 比作"全局平均分档案"，把 ρ 的动态衰减比作"踩刹车"：策略剧变时历史分已失效，调低 ρ 让基线快速吸收新分，优势变小，梯度被自然拉回。</li><li>"伪计数 N\_init=2"类比为"训练前虚构地观察了 2 个样本"，防前几个 batch 把基线带偏。</li><li><code>clip_upper=0.96</code> 的解释很有味道：即使模型没变化（KL=0），也强制保留 4% 新经验，否则基线会"彻底冻结"，永远不学新知识。</li><li>强调 SPO "不需要 <code>torch.clamp</code> 也能稳定训练"——认为动态 ρ 取代了 PPO 的硬截断。这是作者的核心论点，但需谨慎对待（见批注）。</li></ul>
+<h2 id="sec-7">面试考点（SPO 新在哪、为何提出、相对 GRPO 的改进）</h2>
+<ol><li><strong>新在哪</strong>：用纯数学的 EMA + Beta 分布追踪器替代 Critic 神经网络，Baseline = α/(α+β)。</li><li><strong>为何提出</strong>：PPO 显存贵（四模型），GRPO 算力贵（多样本采样）；SPO 同时压缩两者。</li><li><strong>相对 GRPO 的改进</strong>：去掉组内多样本采样（<code>num_return_sequences=1</code>），推理成本降为 1/N；用全局历史基线替代组内均值。</li><li><strong>ρ 的物理意义</strong>：KL 半衰期，KL 越大 ρ 越小，历史权重自动衰减，防基线与模型实际能力脱节。</li><li><strong>上下限 clip 的作用</strong>：上 0.96 防冻结，下 0.5 防失忆。</li><li><strong>KL 估计器</strong>：<code>exp(Δ)-Δ-1</code>（Schulman）恒正，比平方差更贴合概率分布差异。</li><li><strong>变长序列求均值</strong>：<code>(loss*mask).sum(1)/mask.sum(1)</code> 而非直接 <code>.mean()</code>，避免短句被稀释。</li><li><strong>冷启动</strong>：首步无 <code>old_mean_logprob</code>，返回 <code>rho_const=0.9</code>。</li><li><strong>工程细节</strong>：左填充、左侧截断、DDP 解包、<code>_orig_mod</code> 解 compile、<code>.detach()</code> 传 Tracker、梯度累积。</li><li><strong>reward hacking 防线</strong>：Ref 模型 KL 惩罚 + ρ 刹车 + <code>advantages.clamp(-5,5)</code>。</li></ol>
+<div class="section-critique"><h2 id="sec-8">批判性批注（注意:SPO 是很新算法,核对作者描述是否准确,标注任何存疑处）</h2>
+<blockquote><strong>重要声明</strong>：本文仅基于 Minimind 仓库内的 SPO 代码与该作者文档。SPO 作为"很新的算法"，公开论文与权威基准尚不充分，以下为存疑点，建议读者自行核对。</blockquote>
+<ol><li><strong>"SPO"命名存疑（高优）</strong>：业界更知名的 SPO 通常指 Self-Play fPO / Sequence Preference Optimization 等；Minimind 代码里的实现更像"单样本 REINFORCE + EMA baseline + KL 正则"，是否为同名算法的简化工程实现，需核对原文。作者文中也只用一句话"SPO 的核心特点..."，未给出正式定义或引用。</li><li><strong>"不需要 torch.clamp 也能稳定"</strong>：与代码矛盾。<code>advantages.clamp(-5.0, 5.0)</code> 仍是硬截断；ρ 的上下限 <code>clip_lower/clip_upper</code> 本质也是 clamp。更准确说法应是"用动态 ρ 替代 PPO 的 ratio clip-range，但仍保留 advantage clamp 作为安全网"。</li><li><strong>"单标量 KL 近似"可靠性</strong>：<code>KL=|old_mean_logprob - cur_mean_logprob|</code> 是对真实 KL 的极粗近似（只比平均对数概率的绝对差），与 Schulman token 级 KL 不是一回事，作者称其为"简化的单标量 KL 散度"但未说明误差量级，对 ρ 的动态调节可能不稳。</li><li><strong>"Beta 分布"是否真正被用</strong>：代码只用了 Beta 的期望 α/(α+β) 与更新式，并未做 Beta 采样或后验推断；更像"用 Beta 的两个参数当 EMA 计数器"。称"底层使用 Beta 分布逻辑"略有过度解读，实际是 EMA 加权和。</li><li><strong>序列级优势的方差</strong>：单样本 + 全局基线，Advantage 估计方差远大于 GRPO 组内相对优势，作者未讨论 variance 问题；ρ 自适应能否真正补偿方差存疑。</li><li><strong>"self-play"语义</strong>：文中无真正 self-play 对抗生成（如两个策略互博），仅"自己的历史平均分当对手"，命名与实质有出入。</li><li><strong><code>rho_const=0.9</code> 与 <code>clip_lower=0.5</code> 冲突表述</strong>：作者说"训练第一步默认给历史 90% 权重"，但 <code>clip_lower=0.5</code> 是 ρ 的下限；冷启动返回的是 <code>rho_const</code> 而非 clip 后的值，表述无错但易混淆。</li><li><strong>奖励范围假设</strong>：硬编码 <code>scale=3.0</code>，假设 reward∈[-3,3]；不同 Reward Model 量纲不同，迁移性存疑，作者未提示。</li><li><strong><code>torch.exp(kl_div) - kl_div - 1</code> 方向</strong>：<code>kl_div = ref - actor</code>，Schulman 估计器对方向不敏感（恒正），代码正确；但作者解释"无论概率变大变小都惩罚"成立，无误。</li><li><strong>与 GRPO 比较的公平性</strong>：GRPO 的组内采样同时提供方差更低的优势估计，SPO 用历史 EMA 换算力，但基线滞后性可能引入偏差，作者未做对照实验数据支撑"既省又稳"的结论。</li></ol>
+<p>总体判断：作者对 Minimind 代码的工程细节（左填充、错位切片、gather、mask、DDP 剥壳等）讲解准确且精彩；对 SPO 算法层面的"创新性"描述偏宣传化，建议读者把它当作"REINFORCE + EMA baseline + KL 正则"的工程实现来理解，而非已定论的新算法。</p>
+</div><h2 id="sec-9">筐内小思维导图（mermaid 或缩进树）</h2>
+<div class="mermaid-wrap"><div class="mermaid">flowchart TD
+    S[SPO 训练一步]
+    S --&gt; R1[Rollout 单样本生成&lt;br/&gt;num_return_sequences=1&lt;br/&gt;左填充+左侧截断]
+    R1 --&gt; R2[提取 token logps&lt;br/&gt;Actor 带梯度 / Ref no_grad&lt;br/&gt;错位切片+gather]
+    R2 --&gt; R3[计算 Reward&lt;br/&gt;正则格式 + RM 打分 ∈ -3,3]
+    R3 --&gt; R4[取 Baseline&lt;br/&gt;Tracker α/α+β ∈ 0,1&lt;br/&gt;反归一化到 -3,3]
+    R4 --&gt; R5[Advantage = r - baseline&lt;br/&gt;clamp -5,5]
+    R5 --&gt; R6[Loss&lt;br/&gt;-logπ·A + β·KL_schulman&lt;br/&gt;mask 变长均值]
+    R6 --&gt; R7[backward 梯度累积]
+    R7 --&gt; R8[Tracker.update&lt;br/&gt;compute_rho KL 半衰期&lt;br/&gt;EMA 更新 α/β]
+    R8 --&gt; R9[optimizer.step&lt;br/&gt;保存 脱壳 .half.cpu]
+    R8 -.下一步基线.-&gt; R4
+
+    subgraph T[AutoAdaptiveValueTracker]
+        T1[compute_rho&lt;br/&gt;ρ=2^-KL/D_half&lt;br/&gt;clip 0.5~0.96]
+        T2[update&lt;br/&gt;α=ρα+rn ; β=ρβ+1-rn]
+        T3[get_baselines&lt;br/&gt;α/α+β]
+        T1 --&gt; T2 --&gt; T3
+    end</div></div>
+<nav class="pager"><div class="pager__prev"><a href="14-grpo.html"><span class="pager__label">← 上一篇</span>算法:Minimind 的 GRPO 及其变体</a></div><div class="pager__next" style="text-align:right"><a href="16-interview-100.html"><span class="pager__label">下一篇 →</span>求职:大模型八股 100 问</a></div></nav>
+</article>
+</main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', fontFamily: 'Noto Sans SC, sans-serif' });
+</script>
+<script>
+  if (window.hljs) hljs.highlightAll();
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ],
+      ignoredTags: ['script','noscript','style','textarea','pre','code'],
+      throwOnError: false
+    });
+  }
+</script>
+<script src="assets/nav.js"></script>
+</body>
+</html>

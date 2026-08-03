@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From Minimind to More — 全篇结构化精读总图 — From Minimind to More</title>
+<meta name="description" content="---">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
+</head>
+<body>
+<div class="progress-bar" role="progressbar" aria-label="阅读进度"></div>
+<div class="sidebar-backdrop"></div>
+<div class="layout">
+<aside class="sidebar" aria-label="目录">
+<button class="sidebar__toggle" aria-label="开关目录">☰</button>
+<div class="sidebar__brand"><a href="index.html">From Minimind<br/>to More</a></div>
+<div class="sidebar__sub">精读结构化笔记 · 16+1 篇</div>
+<nav class="toc"><div class="toc__group">基石</div>
+<div class="toc__item"><a class="toc__link " href="01-tokenizer.html"><span class="toc__num">01</span><span>基石:Tokenizer 你所需要知道的一切</span></a></div>
+<div class="toc__item"><a class="toc__link " href="02-design.html"><span class="toc__num">02</span><span>基石:Minimind 的设计目录</span></a></div>
+<div class="toc__item"><a class="toc__link " href="03-embedding-pos.html"><span class="toc__num">03</span><span>基石:Embedding 与位置编码</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">架构</div>
+<div class="toc__item"><a class="toc__link " href="04-norm.html"><span class="toc__num">04</span><span>架构:归一化技术(原理、演进与前沿)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="05-kvcache-flashattn.html"><span class="toc__num">05</span><span>架构:大模型优化方法(KV Cache → Flash Attention)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="06-moe.html"><span class="toc__num">06</span><span>架构:混合专家模型(MoE)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="07-assemble.html"><span class="toc__num">07</span><span>架构:超级拼装(搭建自己的大模型)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="08-infer-train-opt.html"><span class="toc__num">08</span><span>架构(可选):大规模语言模型推理与训练优化机制</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">算法</div>
+<div class="toc__item"><a class="toc__link " href="09-rl-overview.html"><span class="toc__num">09</span><span>算法:大模型强化学习算法概览</span></a></div>
+<div class="toc__item"><a class="toc__link " href="10-pretrain.html"><span class="toc__num">10</span><span>算法:Minimind 的 Pretrain</span></a></div>
+<div class="toc__item"><a class="toc__link " href="11-sft.html"><span class="toc__num">11</span><span>算法:Minimind 的 SFT</span></a></div>
+<div class="toc__item"><a class="toc__link " href="12-dpo.html"><span class="toc__num">12</span><span>算法:Minimind 的 DPO</span></a></div>
+<div class="toc__item"><a class="toc__link " href="13-ppo.html"><span class="toc__num">13</span><span>算法:Minimind 的 PPO</span></a></div>
+<div class="toc__item"><a class="toc__link " href="14-grpo.html"><span class="toc__num">14</span><span>算法:Minimind 的 GRPO 及其变体</span></a></div>
+<div class="toc__item"><a class="toc__link " href="15-spo.html"><span class="toc__num">15</span><span>算法:Minimind 的 SPO</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">求职</div>
+<div class="toc__item"><a class="toc__link " href="16-interview-100.html"><span class="toc__num">16</span><span>求职:大模型八股 100 问</span></a></div>
+</nav>
+</aside>
+<main class="content">
+<article class="article">
+<div class="article__crumb"><a href="index.html">总图</a> / 总图</div>
+<h1 class="article__title">From Minimind to More — 全篇结构化精读总图</h1>
+<p class="article__lead">---</p>
+<blockquote>本文档是对 [Tongyun1/from-minimind-to-more](https://github.com/Tongyun1/from-minimind-to-more) 全 17 篇正文(约 62 万字 / 1 万行)的逐篇精读合成。 每篇笔记独立成文于 <code>01_<em>.md</code> ~ <code>16_</em>.md</code>,本文是它们的<strong>总索引 + 总思维导图 + 全局批判</strong>。 阅读路径建议:先读本图建立全貌 → 按需精读单篇笔记 → 回本图查交叉关系。</blockquote>
+<p>---</p>
+<h2 id="sec-1">一、项目定位(一句话)</h2>
+<p>这是基于 [minimind](https://github.com/jingyaogong/minimind)(一个 26M 的"从零训练 LLM"项目)的<strong>中文超详细学习笔记 + 源码逐行注释 + LLM 求职面试题库</strong>;以 minimind 为骨架,把 Tokenizer → 架构 → 训练算法 → 对齐 → 求职 一条龙讲透,目标读者是"想真正看懂一个从零实现的 LLM、同时备战大模型岗面试"的人。</p>
+<p><strong>关键事实</strong>:minimind 是<strong>极小体量(26M)却对齐 Llama3/DeepSeek-V2 前沿设计</strong>的"现代 LLM 特性博物馆"——Decoder-Only + RoPE/YaRN + GQA + Flash Attention + RMSNorm(Pre-Norm) + SwiGLU + 混合 MoE(DeepSeek 式 Shared+Routed) + Weight Tying。理解这一个 Block,就等于理解了 Llama3 / Qwen2 / DeepSeek 的核心运作机制。</p>
+<p>---</p>
+<h2 id="sec-2">二、全篇知识总思维导图</h2>
+<div class="mermaid-wrap"><div class="mermaid">mindmap
+  root((From Minimind&lt;br/&gt;to More))
+    基石篇 Foundations
+      Tokenizer
+        BPE 频率合并自底向上
+        WordPiece PMI似然度
+        Unigram EM+Viterbi剪枝
+        字节级BPE消灭OOV
+        bytes_to_unicode 空格→Ġ
+        特殊Token正则抠出
+        Glitch Tokens 未训练Embedding
+      Minimind设计目录
+        Decoder-Only Causal Mask
+        GQA Q头8/KV头2
+        RoPE+YaRN 长上下文外推
+        Pre-Norm RMSNorm
+        SwiGLU FFN
+        Hybrid MoE Shared+Routed
+        Weight Tying+词表6400
+      Embedding与位置编码
+        分布语义 Token Embedding
+        正弦APE 多尺度时钟
+        ALiBi 线性衰减外推之王
+        RoPE 复数旋转 只剩m-n
+        PI/NTK/YaRN 频域外推4k→128k
+        M-RoPE 多模态时空
+        DeepSeek解耦RoPE
+    架构篇 Architecture
+      归一化技术
+        BN→LN→RMSNorm
+        Pre-Norm vs Post-Norm
+        DeepNorm 1000层有界更新
+        QK-Norm 治熵坍塌
+        Sandwich/NormFormer
+      KVCache与FlashAttn
+        KV Cache 空间换时间 O²→O
+        MHA→MQA→GQA→MLA
+        FlashAttention Tiling IO感知
+        FlashDecoding Split-K
+        PagedAttention 显存分页
+        Prefill计算墙/Decode存储墙
+      MoE混合专家
+        稀疏激活 总参vs激活参
+        Top-K路由 可微性陷阱
+        专家坍缩 负载均衡
+        aux loss传统 vs 无aux动态偏置
+        细粒度专家+共享专家
+        EP专家并行 All-to-All
+        FP8混合精度
+      超级拼装
+        MiniMindConfig五切片
+        Block Pre-Norm双残差
+        数据流逐层张量形状
+        logits_to_keep切片
+        总loss=CE+α·aux
+      推理训练优化机制
+        六大支柱协同
+        Continuous Batching
+        投机解码 Medusa/EAGLE/MTP
+        MoE/Mamba线性化
+        量化 GPTQ/AWQ/SmoothQuant/FP8
+    算法篇 Algorithms
+      RL概览
+        MDP/策略/价值/优势
+        RLHF三阶段 SFT→RM→PPO
+        演进主线 去Critic去RM粒度精细
+        TRPO信任区域 二阶海森
+        PPO Clipped 一阶工业标准
+        ReMax/RLOO/Reinforce++ 去Critic
+        DPO/IPO/KTO/ORPO RL-Free隐式偏好
+        GRPO系 组内Z-score+规则奖励
+        PRM过程监督/STaR自举
+      Pretrain
+        Causal LM 下一词预测
+        指令数据当pretrain
+        Loss Masking Pretrain全算/SFT只assistant
+        Cosine LR 无warmup
+        梯度累积/裁剪/混合精度
+        原子化断点续训
+        DDP ignore RoPE
+      SFT
+        chat template压扁多轮
+        generate_labels 只assistant算loss
+        Shift Prediction错位
+        full SFT vs LoRA
+        过拟合控制 epoch少lr小
+      DPO
+        闭式解 r=β·log(π/π_ref)
+        Bradley-Terry消去Z(x)
+        双模型前向 policy+ref
+        长度归一化 sum vs mean
+        β控制KL偏离 lr极小4e-8
+      PPO
+        四模型 Actor/OldActor/Ref/Critic
+        One-step MDP 极简无GAE
+        三loss policy_clip+value_mse+kl_ref
+        ratio句子级 vs token级
+        KL k3估计可能非负不保证
+        两次padding 采样不算logp
+      GRPO及变体
+        GRPO 组内Z-score去Critic
+        Dr.GRPO 修长度偏置1/(K-1)
+        DAPO 动态采样+非对称裁剪
+        GSPO 序列级似然比稳MoE
+        SAPO 软门控+非对称温度
+        GTPO 熵加权token级credit
+      SPO
+        AutoAdaptiveValueTracker
+        EMA+Beta分布历史基线
+        KL半衰期动态动量ρ
+        单样本省算力 vs GRPO多样本
+        序列级优势广播token
+    求职篇 Career
+      八股100问
+        7板块纯题目无答案
+        架构20/预训练15/微调15/对齐15/推理13/RAG12
+        导览索引非教材
+        部分考点2026已过时</div></div>
+<p>---</p>
+<h2 id="sec-3">三、核心主线:从基石到对齐的完整训练链路</h2>
+<p>整本笔记串起来就是<strong>一个 LLM 从零到对齐的完整生命周期</strong>,按数据流:</p>
+<div class="mermaid-wrap"><div class="mermaid">flowchart TD
+    subgraph F["基石 Foundations"]
+        T[Tokenizer&lt;br/&gt;BPE分词]
+        E[Embedding&lt;br/&gt;Token ID→稠密向量]
+        P[位置编码&lt;br/&gt;RoPE旋转注入相对位置]
+    end
+    subgraph A["架构 Architecture"]
+        N[归一化&lt;br/&gt;RMSNorm Pre-Norm]
+        AT[注意力&lt;br/&gt;GQA + KV Cache + FlashAttn]
+        FF[FFN&lt;br/&gt;SwiGLU / MoE]
+        AS[超级拼装&lt;br/&gt;Block堆叠成完整模型]
+    end
+    subgraph L["算法 Algorithms"]
+        PT[Pretrain&lt;br/&gt;Causal LM 全token算loss]
+        SF[SFT&lt;br/&gt;只对assistant算loss]
+        RL[RLHF/对齐&lt;br/&gt;PPO/DPO/GRPO...]
+    end
+    C[Career&lt;br/&gt;八股100问面试]
+
+    T --&gt; E --&gt; P --&gt; N --&gt; AT --&gt; FF --&gt; AS
+    AS --&gt;|训练| PT --&gt; SF --&gt; RL
+    RL --&gt; C
+
+    F -.支撑.-&gt; A
+    A -.载体.-&gt; L</div></div>
+<p>---</p>
+<h2 id="sec-4">四、各篇一句话索引</h2>
+<table><thead><tr><th>#</th><th>篇名</th><th>一句话精炼</th><th>笔记文件</th></tr></thead><tbody><tr><td>01</td><td>基石:Tokenizer</td><td>子词分词是连接自然语言与机器的桥梁,BPE 以频率合并为基石。</td><td>[01_tokenizer.md](01_tokenizer.md)</td></tr><tr><td>02</td><td>基石:Minimind设计目录</td><td>26M 小体量对齐 Llama3/DeepSeek-V2 前沿设计,一个 Block 即主流大模型技术栈缩影。</td><td>[02_design.md](02_design.md)</td></tr><tr><td>03</td><td>基石:Embedding与位置编码</td><td>Embedding 度量意义,RoPE 用旋转诱导相对位置,YaRN 用频域插值把 4k 撑到 128k。</td><td>[03_embedding_pos.md](03_embedding_pos.md)</td></tr><tr><td>04</td><td>架构:归一化技术</td><td>BN→LN→RMSNorm、Post→Pre 演进,本质是"梯度稳定性 vs 表达上限"的工程权衡。</td><td>[04_norm.md](04_norm.md)</td></tr><tr><td>05</td><td>架构:KVCache→FlashAttention</td><td>推理瓶颈从算力转向显存带宽,KV Cache/GQA/FlashAttn 三维度驯服显存与计算复杂度。</td><td>[05_kvcache_flashattn.md](05_kvcache_flashattn.md)</td></tr><tr><td>06</td><td>架构:MoE混合专家</td><td>稀疏激活解耦总参数量与激活参数量,DeepSeek 式细粒度+共享+无aux 是后摩尔时代核心架构。</td><td>[06_moe.md](06_moe.md)</td></tr><tr><td>07</td><td>架构:超级拼装</td><td>Llama 骨架 + DeepSeek 式 MoE + YaRN + Gemma 式 Tied Embedding 的小而全现代 LLM。</td><td>[07_assemble.md](07_assemble.md)</td></tr><tr><td>08</td><td>架构:推理训练优化机制</td><td>Prefill 计算墙/Decode 存储墙下,六大支柱协同把显存折算成吞吐。</td><td>[08_infer_train_opt.md](08_infer_train_opt.md)</td></tr><tr><td>09</td><td>算法:RL算法概览</td><td>演进主线是"去 Critic、去显式 RM、粒度精细化",GRPO 家族以群体相对基线涌现顿悟。</td><td>[09_rl_overview.md](09_rl_overview.md)</td></tr><tr><td>10</td><td>算法:Pretrain</td><td>Causal LM 目标 + 一整套工程脚手架(余弦 LR/梯度累积/原子续训)在小显存稳训 LLM。</td><td>[10_pretrain.md](10_pretrain.md)</td></tr><tr><td>11</td><td>算法:SFT</td><td>与 Pretrain 框架同构,灵魂在 Dataset 层:chat template 压扁 + Loss Masking 把续写机改造成助手。</td><td>[11_sft.md](11_sft.md)</td></tr><tr><td>12</td><td>算法:DPO</td><td>用闭式解 r=β·log(π/π_ref) 跳过 RM/PPO,直接在 chosen/rejected 偏序对上做监督学习。</td><td>[12_dpo.md](12_dpo.md)</td></tr><tr><td>13</td><td>算法:PPO</td><td>四模型压一卡 + One-step MDP 极简,用 ratio clip + KL + value MSE 三 loss 做 RLAIF 微调。</td><td>[13_ppo.md](13_ppo.md)</td></tr><tr><td>14</td><td>算法:GRPO及变体</td><td>组内 Z-score 去 Critic 省一个 LLM,催生 Dr.GRPO/DAPO/GSPO/SAPO/GTPO 一整条变体补丁链。</td><td>[14_grpo.md](14_grpo.md)</td></tr><tr><td>15</td><td>算法:SPO</td><td>EMA+Beta 分布追踪器替代 Critic,KL 半衰期动态动量实现单样本省算力的折中派。</td><td>[15_spo.md](15_spo.md)</td></tr><tr><td>16</td><td>求职:八股100问</td><td>7 板块 100 题纯列表无答案,定位是"复习提纲/自测索引",知识载体外置到 minimind+AI。</td><td>[16_interview_100.md](16_interview_100.md)</td></tr></tbody></table>
+<p>---</p>
+<h2 id="sec-5">五、对齐算法谱系总图(全篇最核心)</h2>
+<p>GRPO 家族是整本笔记的技术前沿与求职热点,单列详图:</p>
+<div class="mermaid-wrap"><div class="mermaid">flowchart LR
+    RLHF["RLHF 目标&lt;br/&gt;max E[r] - β·KL(π‖π_ref)"] --&gt; PPO["PPO&lt;br/&gt;四模型+GAE&lt;br/&gt;稳定但显存墙"]
+    RLHF --&gt; DPO["DPO&lt;br/&gt;闭式解消RM&lt;br/&gt;离线+隐式偏好"]
+    RLHF --&gt; GRPO0["GRPO&lt;br/&gt;组内Z-score去Critic&lt;br/&gt;4→3模型"]
+
+    GRPO0 --&gt;|"修长度偏置"| Dr["Dr.GRPO&lt;br/&gt;1/(K-1)无偏缩放&lt;br/&gt;剔除｜o｜除法"]
+    GRPO0 --&gt;|"修熵坍塌+截断噪声"| DA["DAPO&lt;br/&gt;动态采样+非对称裁剪&lt;br/&gt;Token-level Loss"]
+    GRPO0 --&gt;|"修Token方差+MoE漂移"| GS["GSPO&lt;br/&gt;序列级似然比&lt;br/&gt;长度归一化clip"]
+    GRPO0 --&gt;|"修硬裁剪归零+带崩词表"| SA["SAPO&lt;br/&gt;Sigmoid软门控&lt;br/&gt;非对称温度τpos/τneg"]
+    GRPO0 --&gt;|"修稀疏credit大锅饭"| GT["GTPO&lt;br/&gt;策略熵H作权重&lt;br/&gt;A_i,t=A_i·w_i,t"]
+
+    GRPO0 -.省Critic省RM.-&gt; R1["DeepSeek-R1&lt;br/&gt;推理顿悟涌现"]
+    DPO --&gt; IPO["IPO&lt;br/&gt;MSE回归防过拟合"]
+    DPO --&gt; KTO["KTO&lt;br/&gt;点状反馈 前景理论"]
+    DPO --&gt; ORPO["ORPO&lt;br/&gt;SFT+对齐一步&lt;br/&gt;无Ref"]
+
+    PRM["PRM&lt;br/&gt;过程监督密集奖励"] -.推理时引导.-&gt; GRPO0
+    STaR["STaR&lt;br/&gt;生成-过滤-合理化&lt;br/&gt;左脚踩右脚"] -.RL前置冷启动.-&gt; GRPO0
+
+    SPO0["SPO(非GRPO系)&lt;br/&gt;EMA+Beta历史基线&lt;br/&gt;单样本省算力"] -.折中派.-&gt; GRPO0
+
+    style GRPO0 fill:#fde68a
+    style R1 fill:#bbf7d0</div></div>
+<p>---</p>
+<h2 id="sec-6">六、minimind 工程实现要点速查(跨篇共性)</h2>
+<p>多篇笔记反复出现的工程细节,汇成一张速查表(面试可直接用):</p>
+<table><thead><tr><th>主题</th><th>关键实现</th><th>所在篇</th></tr></thead><tbody><tr><td><strong>RoPE</strong></td><td><code>precompute_freqs_cis</code>(YaRN 的 inv_dim/ramp)+ <code>apply_rotary_pos_emb</code>(rotate_half 等价复数旋转)</td><td>03/07</td></tr><tr><td><strong>归一化</strong></td><td>RMSNorm:<code>rsqrt</code> 加速 + <code>float32</code> 计算 → <code>type_as</code> 回原精度(防 fp16 溢出)</td><td>04</td></tr><tr><td><strong>注意力</strong></td><td>GQA:<code>repeat_kv</code>(expand+reshape 复制 KV 头);Flash 仅 Prefill 无 cache 时走 SDPA</td><td>05/07</td></tr><tr><td><strong>MoE</strong></td><td><code>MoEGate</code>(softmax+topk+norm);训练 <code>repeat_interleave</code>+<code>0*params</code> 防 DDP 死锁;推理 <code>argsort+bincount+scatter_add_</code> 跳空专家</td><td>06</td></tr><tr><td><strong>Shift Prediction</strong></td><td><code>logits[...,:-1,:] ↔ labels[...,1:]</code>,一次前向算所有 token loss</td><td>07/10/11</td></tr><tr><td><strong>Loss Masking</strong></td><td>Pretrain 只 mask pad(-100);SFT 只 assistant 段算 loss;DPO/PPO/GRPO/SPO 含 EOS</td><td>10/11/12/13/14/15</td></tr><tr><td><strong>梯度累积</strong></td><td><code>loss / accumulation_steps</code>;等效 batch = batch×world_size×accum</td><td>10/11/12/13/14/15</td></tr><tr><td><strong>AMP 顺序</strong></td><td><code>scaler.unscale_</code> → <code>clip_grad_norm_</code> → <code>scaler.step</code> → <code>update</code> → <code>zero_grad(set_to_none=True)</code></td><td>10/11/12/13</td></tr><tr><td><strong>原子续训</strong></td><td><code>lm_checkpoint</code>:写 <code>.tmp</code> → <code>os.replace</code>;含 model/opt/scaler/epoch/step/ws;GPU 数变化 <code>step×saved_ws//cur_ws</code></td><td>10</td></tr><tr><td><strong>DDP ignore</strong></td><td><code>_ddp_params_and_buffers_to_ignore={"freqs_cos","freqs_sin"}</code>(RoPE 表不参与梯度同步)</td><td>10/11/12/13/14/15</td></tr><tr><td><strong>保存剥壳</strong></td><td>DDP <code>.module</code> → compile <code>_orig_mod</code> → <code>.half().cpu()</code> → <code>torch.save</code></td><td>10/11/12/14/15</td></tr><tr><td><strong>KL 估计</strong></td><td>GRPO/SPO 用 Schulman 正定形式 <code>exp(Δ)-Δ-1</code>;PPO 用 <code>k3</code> 近似 <code>(logp_a-logp_r).mean()</code>(可能为负)</td><td>13/14/15</td></tr><tr><td><strong>logps 抽取</strong></td><td><code>log_softmax(logits[:,:-1]).gather(labels)</code> 错位切片取实际 token 概率</td><td>12/13/14/15</td></tr></tbody></table>
+<p>---</p>
+<div class="section-critique"><h2 id="sec-7">七、全局批判性批注(跨篇综合)</h2>
+<p>精读 16 篇后,提炼出该笔记/项目层面的<strong>跨篇共性问题</strong>:</p>
+<h3 id="sec-8">7.1 作者层面的优点</h3>
+<ul><li><strong>源码级而非概念级</strong>:对着 minimind 真实代码逐行讲,配 tensor shape 标注,不是空谈架构图。</li><li><strong>前沿覆盖度罕见</strong>:GRPO 五变体(Dr.GRPO/DAPO/GSPO/SAPO/GTPO)+ SPO + PRM/STaR 一条龙,中文 LLM 教学资料里属顶级。</li><li><strong>写作有风格</strong>:用通俗类比讲清算法动机(如"GRPO 像搞题海战术的小组学习")。</li><li><strong>自我批判诚实</strong>:作者明确承认 minimind 是极简教学实现,多处标注"未实现工业级 X"。</li></ul>
+<h3 id="sec-9">7.2 跨篇共性问题</h3>
+<p><strong>A. minimind 实现与工业标准的差距未充分量化</strong></p>
+<ul><li>PPO 把整段 response 当 one-step MDP、句子级 ratio、KL 用可能为负的 k3 近似、无 advantage 标准化——这些都是与 TRL/标准 PPO 的<strong>算法级</strong>差异,作者虽标注"极简",但未量化效果差距,初学者易误以为"这就是 PPO"。</li><li>DPO 用 mean(每 token 平均)而非原论文 sum(整句联合概率),改变了损失的概率语义,作者未点出这一偏离。</li><li>GRPO/Minimind 把 reward 截断到 [-3,3] 是工程 hack 而非理论需要,会扭曲 RM 相对排序。</li></ul>
+<p><strong>B. 部分内容 2026 视角下已过时</strong></p>
+<ul><li>八股100问里 Chinchilla scaling law、经典 RLHF/DPO 叙事、MMLU 等老评测榜已被 over-training、RLVR/GRPO、MMLU-Pro/GPQA/AIME 等取代。</li><li>八股把 DPO/MoE/FlashAttn/vLLM 列为"加分项",但 2026 已属标配。</li><li>推理优化篇(08)未提 SGLang/LMDeploy、GGUF/AWQ 在 llama.cpp 生态的实际落地。</li></ul>
+<p><strong>C. 数学严谨性参差</strong></p>
+<ul><li>RL 概览篇(09)的"RLOO 超越 PPO""KTO 匹敌 DPO"等声明缺定量基准。</li><li>Dr.GRPO 的"1/(K-1) 无偏缩放"论证偏口语化,学术面试若被追问易露怯。</li><li>SPO 的"不需要 clamp 也能稳定"与代码中 <code>advantages.clamp(-5,5)</code> 矛盾。</li></ul>
+<p><strong>D. 归因偏单一</strong></p>
+<ul><li>把 DeepSeek-V3 SOTA 归于"无 aux loss + 细粒度 + 共享专家",但 MLA/FP8/通信重叠/数据/RL 同样关键。</li><li>把 GRPO 描绘为 R1 推理涌现核心功臣,但未充分讨论基座规模、冷启动 SFT 等混杂变量。</li><li>个别处偏宣传化(SPO 的"创新性"、PRM 的"不可逾越护城河")。</li></ul>
+<p><strong>E. 覆盖盲区</strong></p>
+<ul><li>八股缺多模态专章、Agent 工程链路、长上下文新机制(NSA/MoBA/hybrid SSM)、安全/红队。</li><li>推理训练优化篇实际只覆盖推理,缺分布式训练(数据并行/ZeRO/TP/PP)、混合精度训练原理、梯度累积推导。</li><li>优化篇(LoRA/知识蒸馏)至今未写。</li></ul>
+<h3 id="sec-10">7.3 结论性判断</h3>
+<p>作为<strong>中文 LLM 学习/求职参考</strong>,该笔记质量<strong>远高于平均水平</strong>,核心价值在"源码逐行注释 + 前沿 GRPO 家族串讲 + 面试导向",在 minimind 教学生态里是扎实补充。短板是 minimind 极简实现与工业标准的差距未充分量化、部分内容时效性、数学严谨性参差。<strong>建议读者带着"时间戳意识"和"教学 vs 生产"的区分读</strong>,遇到关键论断回原论文交叉验证。</p>
+<p>---</p>
+</div><h2 id="sec-11">八、阅读路径推荐</h2>
+<p>按读者画像选路径:</p>
+<p><strong>A. 纯新手(刚接触 LLM)</strong> 02(设计目录)→ 01(Tokenizer)→ 03(Embedding/位置)→ 04(归一化)→ 07(超级拼装)→ 10(Pretrain)→ 11(SFT)→ 09(RL 概览)→ 16(八股)</p>
+<p><strong>B. 求职冲刺(3 个月内面试)</strong> 16(八股自测)→ 04/05/06(架构高频)→ 09(RL 概览+对比表)→ 12/13/14(DPO/PPO/GRPO)→ 速查表第六节</p>
+<p><strong>C. 算法岗深度(SFT/RL 方向)</strong> 09 → 12(DPO 推导)→ 14(GRPO 变体谱系)→ 15(SPO)→ 13(PPO 工程)→ 10/11(训练工程)</p>
+<p><strong>D. 工程/推理部署岗</strong> 05 → 08 → 06(MoE 部署)→ 07 → 速查表</p>
+<p>---</p>
+<h2 id="sec-12">九、笔记文件清单</h2>
+<pre><code>/tmp/fmmtm_notes/
+├── 00_OVERVIEW.md          ← 本文件(总图+索引)
+├── 01_tokenizer.md
+├── 02_design.md
+├── 03_embedding_pos.md
+├── 04_norm.md
+├── 05_kvcache_flashattn.md
+├── 06_moe.md
+├── 07_assemble.md
+├── 08_infer_train_opt.md
+├── 09_rl_overview.md
+├── 10_pretrain.md
+├── 11_sft.md
+├── 12_dpo.md
+├── 13_ppo.md
+├── 14_grpo.md
+├── 15_spo.md
+└── 16_interview_100.md</code></pre>
+<p>每篇均含固定八段:一句话精炼 / 核心概念 / 关键公式(LaTeX) / 关键算法流程 / 源码要点 / 作者独到见解类比 / 面试考点 / 批判性批注 / 篇内思维导图(mermaid 或缩进树)。</p>
+<nav class="pager"><div></div><div class="pager__next" style="text-align:right"><a href="01-tokenizer.html"><span class="pager__label">下一篇 →</span>基石:Tokenizer 你所需要知道的一切</a></div></nav>
+</article>
+</main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', fontFamily: 'Noto Sans SC, sans-serif' });
+</script>
+<script>
+  if (window.hljs) hljs.highlightAll();
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ],
+      ignoredTags: ['script','noscript','style','textarea','pre','code'],
+      throwOnError: false
+    });
+  }
+</script>
+<script src="assets/nav.js"></script>
+</body>
+</html>

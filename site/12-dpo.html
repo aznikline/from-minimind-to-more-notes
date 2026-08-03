@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>算法:Minimind 的 DPO — From Minimind to More</title>
+<meta name="description" content="DPO 用同一个 SFT 模型充当&quot;参考&quot;与&quot;策略&quot;两份角色，直接在 chosen/rejected 偏序对上做带 log-ratio 的二元交叉熵，跳过显式奖励模型与 PPO，让策略在偏离参考模型的代价下学会偏好。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
+</head>
+<body>
+<div class="progress-bar" role="progressbar" aria-label="阅读进度"></div>
+<div class="sidebar-backdrop"></div>
+<div class="layout">
+<aside class="sidebar" aria-label="目录">
+<button class="sidebar__toggle" aria-label="开关目录">☰</button>
+<div class="sidebar__brand"><a href="index.html">From Minimind<br/>to More</a></div>
+<div class="sidebar__sub">精读结构化笔记 · 16+1 篇</div>
+<nav class="toc"><div class="toc__group">基石</div>
+<div class="toc__item"><a class="toc__link " href="01-tokenizer.html"><span class="toc__num">01</span><span>基石:Tokenizer 你所需要知道的一切</span></a></div>
+<div class="toc__item"><a class="toc__link " href="02-design.html"><span class="toc__num">02</span><span>基石:Minimind 的设计目录</span></a></div>
+<div class="toc__item"><a class="toc__link " href="03-embedding-pos.html"><span class="toc__num">03</span><span>基石:Embedding 与位置编码</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">架构</div>
+<div class="toc__item"><a class="toc__link " href="04-norm.html"><span class="toc__num">04</span><span>架构:归一化技术(原理、演进与前沿)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="05-kvcache-flashattn.html"><span class="toc__num">05</span><span>架构:大模型优化方法(KV Cache → Flash Attention)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="06-moe.html"><span class="toc__num">06</span><span>架构:混合专家模型(MoE)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="07-assemble.html"><span class="toc__num">07</span><span>架构:超级拼装(搭建自己的大模型)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="08-infer-train-opt.html"><span class="toc__num">08</span><span>架构(可选):大规模语言模型推理与训练优化机制</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">算法</div>
+<div class="toc__item"><a class="toc__link " href="09-rl-overview.html"><span class="toc__num">09</span><span>算法:大模型强化学习算法概览</span></a></div>
+<div class="toc__item"><a class="toc__link " href="10-pretrain.html"><span class="toc__num">10</span><span>算法:Minimind 的 Pretrain</span></a></div>
+<div class="toc__item"><a class="toc__link " href="11-sft.html"><span class="toc__num">11</span><span>算法:Minimind 的 SFT</span></a></div>
+<div class="toc__item"><a class="toc__link is-current" href="12-dpo.html"><span class="toc__num">12</span><span>算法:Minimind 的 DPO</span></a><ul class="toc__sub"><li><a class="toc__sub-link" href="12-dpo.html#sec-1">一句话精炼</a></li><li><a class="toc__sub-link" href="12-dpo.html#sec-2">核心概念(DPO 动机:绕过 RM/RL 直接偏好优化;chosen/rejected;参考模型 frozen)</a></li><li><a class="toc__sub-link" href="12-dpo.html#sec-3">关键公式(LaTeX:DPO loss: Bradley-Terry 模型、π_ref、对数比、σ 形式;reward = β·log(π/π_ref))</a></li><li><a class="toc__sub-link" href="12-dpo.html#sec-4">关键算法/流程(DPO 数据构造、训练循环、两个模型的前向)</a></li><li><a class="toc__sub-link" href="12-dpo.html#sec-8">源码要点(Minimind DPO 代码要点)</a></li><li><a class="toc__sub-link" href="12-dpo.html#sec-9">作者独到见解/类比</a></li><li><a class="toc__sub-link" href="12-dpo.html#sec-10">面试考点(DPO 与 PPO 的关系、为何能省去 RM、β 作用、chosen/rejected 梯度方向)</a></li><li><a class="toc__sub-link" href="12-dpo.html#sec-11">批判性批注</a></li><li><a class="toc__sub-link" href="12-dpo.html#sec-12">篇内小思维导图</a></li></ul></div>
+<div class="toc__item"><a class="toc__link " href="13-ppo.html"><span class="toc__num">13</span><span>算法:Minimind 的 PPO</span></a></div>
+<div class="toc__item"><a class="toc__link " href="14-grpo.html"><span class="toc__num">14</span><span>算法:Minimind 的 GRPO 及其变体</span></a></div>
+<div class="toc__item"><a class="toc__link " href="15-spo.html"><span class="toc__num">15</span><span>算法:Minimind 的 SPO</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">求职</div>
+<div class="toc__item"><a class="toc__link " href="16-interview-100.html"><span class="toc__num">16</span><span>求职:大模型八股 100 问</span></a></div>
+</nav>
+</aside>
+<main class="content">
+<article class="article">
+<div class="article__crumb"><a href="index.html">总图</a> / 算法</div>
+<h1 class="article__title">算法:Minimind 的 DPO</h1>
+<p class="article__lead">DPO 用同一个 SFT 模型充当"参考"与"策略"两份角色，直接在 chosen/rejected 偏序对上做带 log-ratio 的二元交叉熵，跳过显式奖励模型与 PPO，让策略在偏离参考模型的代价下学会偏好。</p>
+<h2 id="sec-1">一句话精炼</h2>
+<p>DPO 用同一个 SFT 模型充当"参考"与"策略"两份角色，直接在 chosen/rejected 偏序对上做带 log-ratio 的二元交叉熵，跳过显式奖励模型与 PPO，让策略在偏离参考模型的代价下学会偏好。</p>
+<h2 id="sec-2">核心概念(DPO 动机:绕过 RM/RL 直接偏好优化;chosen/rejected;参考模型 frozen)</h2>
+<ul><li><strong>动机</strong>:经典 RLHF 流程是 SFT -&gt; 训练 Reward Model -&gt; PPO 优化策略。RM 和 PPO 都不稳定、显存重、调参难。DPO 的洞见是:最优策略 $\pi^<em>$ 与参考策略 $\pi_{\text{ref}}$ 之间存在闭式关系 $r(x,y)=\beta\log\frac{\pi^</em>(y|x)}{\pi_{\text{ref}}(y|x)}+\beta\log Z(x)$,把这个关系代回偏好模型(Bradley-Terry),奖励就消失,只剩策略与参考的对数比,于是可以直接在偏好数据上做监督学习。</li><li><strong>chosen / rejected</strong>:每条样本是同一 prompt 下的"好回答"与"坏回答"偏序对。两者 user 输入必须完全一致,差异只在 assistant 回复。Minimind 的 <code>dpo.jsonl</code> 即 <code>{"chosen": [...], "rejected": [...]}</code> 多轮对话列表。</li><li><strong>参考模型 frozen</strong>:从 SFT 权重复制一份作为 $\pi_{\text{ref}}$,<code>eval()</code> + <code>requires_grad_(False)</code>,前向在 <code>torch.no_grad()</code> 下运行,只产出 <code>ref_log_probs</code> 作为基准锚点,不更新。</li><li><strong>策略模型 trainable</strong>:同一 SFT 权重初始化的 $\pi_\theta$,参与梯度更新,目标是在 chosen 上提概率、在 rejected 上降概率(相对参考而言)。</li><li><strong>与 SFT 的相似性</strong>:作者开篇点明"DPO 本质上还是交叉熵损失,代码与 SFT 比较相似",差异只在 loss 构造与双模型前向。</li></ul>
+<h2 id="sec-3">关键公式(LaTeX:DPO loss: Bradley-Terry 模型、π_ref、对数比、σ 形式;reward = β·log(π/π_ref))</h2>
+<p><strong>Bradley-Terry 偏好模型</strong>(DPO 的前提,假设人类偏好服从奖励差值的 logistic):</p>
+<p>$$p(y_w \succ y_l \mid x) = \sigma\big(r(x,y_w) - r(x,y_l)\big)$$</p>
+<p><strong>最优策略与奖励的闭式关系</strong>(代入 BT 即消去显式奖励):</p>
+<p>$$r(x,y) = \beta \log \frac{\pi^*(y\mid x)}{\pi_{\text{ref}}(y\mid x)} + \beta \log Z(x)$$</p>
+<p>由于 $Z(x)$ 在 $y_w$ 与 $y_l$ 上相消,代入 BT 得到 <strong>DPO 损失</strong>:</p>
+<p>$$\mathcal{L}_{\text{DPO}}(\pi_\theta;\pi_{\text{ref}}) = -\mathbb{E}_{(x,y_w,y_l)}\Big[\log \sigma\Big(\beta\Big(\log\frac{\pi_\theta(y_w\mid x)}{\pi_{\text{ref}}(y_w\mid x)} - \log\frac{\pi_\theta(y_l\mid x)}{\pi_{\text{ref}}(y_l\mid x)}\Big)\Big)\Big]$$</p>
+<p><strong>隐式奖励</strong>(代码注释里给出的形式,可作为推理时的 reward 读数):</p>
+<p>$$\hat{r}(x,y) = \beta \log \frac{\pi_\theta(y\mid x)}{\pi_{\text{ref}}(y\mid x)}$$</p>
+<p><strong>Minimind 代码中的等价实现</strong>(注意它做了序列长度归一化):</p>
+<ul><li>单 token log 概率:<code>log_probs_per_token = gather(log_softmax(logits), labels)</code></li><li>句子级平均 log 概率:$\bar{\ell}(y) = \frac{1}{|y|}\sum_{t \in y} \log \pi_\theta(y_t \mid y_{&lt;t})$(除以 <code>seq_lengths</code> 做长短句公平)</li><li>核心 logits:$\text{logits} = \underbrace{(\bar{\ell}_{\text{policy}}^w - \bar{\ell}_{\text{policy}}^l)}_{\pi\text{-logratios}} - \underbrace{(\bar{\ell}_{\text{ref}}^w - \bar{\ell}_{\text{ref}}^l)}_{\text{ref-logratios}}$</li><li>损失:<code>loss = -F.logsigmoid(beta * logits)</code>,默认 <code>beta=0.1</code></li></ul>
+<h2 id="sec-4">关键算法/流程(DPO 数据构造、训练循环、两个模型的前向)</h2>
+<h3 id="sec-5">数据构造(<code>DPODataset.__getitem__</code>)</h3>
+<ol><li>取 <code>chosen</code> 与 <code>rejected</code> 两个多轮对话列表。</li><li><code>apply_chat_template(tokenize=False)</code> 拼成纯文本字符串。</li><li><code>tokenizer(truncation=True, padding='max_length')</code> 得到 <code>input_ids</code>(定长)。</li><li><code>generate_loss_mask</code>:扫描 <code>input_ids</code>,定位 <code>bos_id</code>(<code>&lt;bos&gt;assistant\n</code> 起始标志)到 <code>eos_id</code>(<code>&lt;eos&gt;\n</code> 结束标志)之间的区间,把这段 mask 置 1(含 EOS,让模型学会生成结束符);user 输入与 padding 全为 0。</li><li><strong>Shift Trick</strong>:因果 LM 预测下一 token,故 <code>x = input_ids[:-1]</code>,<code>y = input_ids[1:]</code>,<code>mask = loss_mask[1:]</code>(mask 对齐 y 位置)。</li><li>返回 6 个张量:<code>x_chosen, y_chosen, mask_chosen, x_rejected, y_rejected, mask_rejected</code>。</li></ol>
+<h3 id="sec-6">训练循环(<code>train_epoch</code>)</h3>
+<ol><li>拿到 batch 的 6 个张量,移到 GPU。</li><li><strong>拼接</strong>:<code>x = cat([x_chosen, x_rejected])</code>,<code>y</code>、<code>mask</code> 同理,一次前向算完两份,batch 维变 <code>2*B</code>。</li><li>动态调学习率(Cosine Annealing,<code>get_lr</code>)。</li><li><strong>双模型前向</strong>(autocast 混合精度):</li></ol>
+<ul><li>参考模型:<code>with torch.no_grad(): ref_logits = ref_model(x).logits</code>,再 <code>logits_to_log_probs(ref_logits, y)</code>。</li><li>策略模型:<code>logits = model(x).logits</code>,再 <code>logits_to_log_probs(logits, y)</code>。</li></ul>
+<ol><li><strong>DPO 损失</strong>:<code>dpo_loss(ref_log_probs, policy_log_probs, mask, beta)</code>。</li><li><code>loss = dpo_loss_val + outputs.aux_loss</code>(aux_loss 是 MoE 负载均衡,非 MoE 为 0)。</li><li><code>/ accumulation_steps</code> 后 <code>scaler.scale(loss).backward()</code>。</li><li>梯度累积到点:<code>unscale_</code> -&gt; <code>clip_grad_norm_(1.0)</code> -&gt; <code>scaler.step</code> -&gt; <code>zero_grad(set_to_none=True)</code>。</li><li>日志打印 loss/dpo_loss/aux_loss/lr;按 <code>save_interval</code> 存半精度 <code>.pth</code> + 完整 checkpoint。</li></ol>
+<h3 id="sec-7"><code>dpo_loss</code> 内部 7 步</h3>
+<ol><li><code>seq_lengths = mask.sum(dim=1, keepdim=True).clamp_min(1e-8)</code> — 有效长度,防除零。</li><li>句级平均 log 概率:<code>(log_probs * mask).sum(dim=1) / seq_lengths.squeeze()</code>。</li><li>拆分 chosen / rejected:<code>[:batch//2]</code> 与 <code>[batch//2:]</code>(依赖拼接顺序)。</li><li><code>pi_logratios = chosen_policy - reject_policy</code>。</li><li><code>ref_logratios = chosen_ref - reject_ref</code>。</li><li><code>logits = pi_logratios - ref_logratios</code>。</li><li><code>loss = -F.logsigmoid(beta * logits)</code>,返回 <code>loss.mean()</code>。</li></ol>
+<h2 id="sec-8">源码要点(Minimind DPO 代码要点)</h2>
+<ul><li><strong><code>logits_to_log_probs</code></strong>:<code>F.log_softmax(logits, dim=2)</code> 得到全词表 log 概率,再 <code>torch.gather(..., index=labels.unsqueeze(2)).squeeze(-1)</code> 只取 label 对应位置,输出 <code>(batch, seq)</code>。这是 DPO 与 SFT 最关键的工具函数差异。</li><li><strong>长度归一化</strong>:代码对句级 log 概率做了 <code>/ seq_lengths</code>。论文原式是对整句求和(等价于句子联合概率),这里改成"每 token 平均"是为了让长短句公平比较,避免短句天然 log 概率更高被误判为"更好"。这是 Minimind 相对原 DPO 的一个工程取舍。</li><li><strong>batch 拼接顺序约束</strong>:<code>dpo_loss</code> 用 <code>batch_size // 2</code> 切分 chosen/rejected,要求上层 <code>torch.cat([chosen, rejected])</code> 必须保持这个顺序,顺序错了 loss 含义就反了。</li><li><strong>参考模型冻结</strong>:<code>ref_model.eval()</code> + <code>ref_model.requires_grad_(False)</code> + 前向包 <code>torch.no_grad()</code>,且与策略模型用同一个 <code>from_weight</code>(<code>full_sft</code>)初始化,保证起点一致。</li><li><strong>学习率极小</strong>:<code>--learning_rate 4e-8</code>,注释强调"DPO 学习率通常 1e-7~5e-8,比 SFT 小很多",因为 DPO 是在已收敛的 SFT 权重上做微调,大步长会破坏已学知识。</li><li><strong><code>beta=0.1</code></strong>:<code>--beta</code> 默认 0.1,注释"值越大,越不允许偏离 Reference Model"。代码里 beta 直接乘在 logits 上进 logsigmoid。</li><li><strong>loss mask 含 EOS</strong>:<code>generate_loss_mask</code> 的 <code>range(start, min(end + len(self.eos_id), max_length))</code> 特意把 EOS token 也纳入 mask,让模型学会生成结束符。</li><li><strong>MoE 兼容</strong>:<code>loss = dpo_loss_val + outputs.aux_loss</code>,aux_loss 是 MoE 负载均衡损失,非 MoE 模型该字段为 0,框架统一处理。</li><li><strong>DDP 忽略 RoPE</strong>:<code>model._ddp_params_and_buffers_to_ignore = {"freqs_cos","freqs_sin"}</code>,避免 DDP 对非参数 buffer 报错。</li><li><strong>checkpoint 保存</strong>:半精度 <code>v.half().cpu()</code> 存权重省空间,另存完整 checkpoint(含 optimizer/scaler)支持断点续训。</li><li><strong>断点续训</strong>:<code>SkipBatchSampler</code> 跳过已训练 step,<code>from_resume=1</code> 时自动恢复 optimizer/scaler/epoch/step。</li></ul>
+<h2 id="sec-9">作者独到见解/类比</h2>
+<ul><li>开篇定性:"DPO 本质上还是在做一个交叉熵损失,所以代码与 SFT 是比较相似的"——把 DPO 从神秘的 RL 拉回到"带 log-ratio 的监督学习",降低理解门槛。</li><li>把 <code>sum(dim=1)</code> 解释为"乘法变加法"的概率论操作:对数空间里整句话概率 = 各 token log 概率之和。用 "I love AI" 三词例子把数学落到代码。</li><li>主动点出 <code>/ seq_lengths</code> 的工程理由:长句 log sum 天然更负,不归一化会让 DPO 偏向短句。这是原论文没强调、但实战必须处理的细节。</li><li>强调"只需看懂数据构造与 <code>dpo_loss</code> 就能搞懂 DPO"——把 DPO 的复杂度收敛到两个核心点,其余训练框架与 SFT 同构。</li><li>用 mask 表格(位置/Token/mask/log_probs/含义)把抽象的 mask 过滤可视化,适合教学。</li></ul>
+<h2 id="sec-10">面试考点(DPO 与 PPO 的关系、为何能省去 RM、β 作用、chosen/rejected 梯度方向)</h2>
+<ul><li><strong>DPO 与 PPO 的关系</strong>:两者都源于同一个 RLHF 目标 $\max_\pi \mathbb{E}[r] - \beta D_{\text{KL}}(\pi\|\pi_{\text{ref}})$。PPO 显式训 RM 再在线采样 + value baseline;DPO 利用 KL 约束的闭式解把奖励改写成策略对数比,把 RL 问题重写成监督学习。</li><li><strong>为何能省去 RM</strong>:因为 $\hat{r}(x,y)=\beta\log\frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)}$ 把奖励隐式地编码在策略与参考的对数比里,不需要单独的网络去拟合奖励。参考模型本身就是"奖励锚"。</li><li><strong>β 作用</strong>:β 越大,KL 惩罚越强,策略越不能偏离参考(更保守,保 SFT 知识);β 越小,越自由追随偏好数据(可能过拟合偏好、损害通用能力)。代码里 β 直接乘在 logits 上,默认 0.1。</li><li><strong>chosen/rejected 梯度方向</strong>:loss = $-\log\sigma(\beta(\Delta_\pi - \Delta_{\text{ref}}))$。要降 loss,就要增大 $\Delta_\pi = \log\pi(y_w) - \log\pi(y_l)$,即<strong>策略对 chosen 提概率、对 rejected 降概率</strong>;参考模型的 $\Delta_{\text{ref}}$ 是固定基准,把"绝对偏好"转成"相对参考的偏好增量"。</li><li><strong>为何 ref 模型必须 frozen</strong>:ref 是偏好基准,若它也更新,loss 的锚点会漂移,$\hat{r}$ 不再对应固定的奖励定义,训练会退化或发散。</li><li><strong>学习率为何极小(4e-8)</strong>:起点是已收敛的 SFT 模型,DPO 只做偏好微调,大步长会冲掉 SFT 知识。</li><li><strong>长度归一化的影响</strong>:不归一化时短句 log 概率天然更高,DPO 会偏向把 chosen 生成得越来越短;归一化后用每 token 平均 log 概率,长短句可比。</li><li><strong>DPO 的失败模式</strong>:chosen 与 rejected 质量差距小、或 rejected 本身也合理时,信号弱;偏好数据有标注噪声时 DPO 会放大偏差;β 过小会过拟合偏好、损害通用能力。</li></ul>
+<div class="section-critique"><h2 id="sec-11">批判性批注</h2>
+<ul><li><strong>长度归一化 vs 原论文</strong>:原 DPO 用整句 log 概率(联合概率),Minimind 改成每 token 平均。这改变了损失的概率语义(不再是严格的 BT 推导),更像一个工程化的 surrogate loss。理论上更接近 RPO/IPO 系列的思路,作者未点出这一偏离。面试时若被追问"DPO 原式怎么写",要记得原式是 sum 不是 mean。</li><li><strong>隐式奖励的数值稳定性</strong>:<code>log_softmax</code> + <code>gather</code> 是标准做法,但 bfloat16 下低概率 token 的 log 可能精度损失。代码用 <code>autocast</code> 包前向但 loss 计算未显式上转 float32,大规模训练需注意。</li><li><strong>参考模型显存开销</strong>:DPO 必须同时驻留两份模型权重,policy + ref。Minimind 模型小无压力,但大模型场景这是 DPO 的主要显存痛点(LoraDPO、ref-free DPO 等变体正是为此而生),作者未提。</li><li><strong>无 KL 估计、无 reward 监控</strong>:训练日志只打印 dpo_loss/aux_loss/lr,没有打印 chosen/rejected 各自的 log 概率、隐式 reward、KL 估计等。实战中这些是判断"是否在学偏好 vs 是否在崩"的关键,缺失会让调参凭感觉。</li><li><strong>batch 拼接切分的脆弱性</strong>:<code>batch_size // 2</code> 切分强依赖 <code>cat([chosen, rejected])</code> 顺序,没有断言保护。若有人改动 DataLoader 顺序会静默出错,建议加 <code>assert</code> 或用显式的 chunk 标记。</li><li><strong>EOS 纳入 mask 的取舍</strong>:让模型学会生成 EOS 是好事,但若 rejected 的 EOS 也被算进 loss,等于"教模型 rejected 的结束方式",信号可能互相矛盾。作者未讨论这一边界。</li><li><strong>单 epoch 默认</strong>:<code>--epochs</code> 默认 1,DPO 通常确实 1-2 epoch 即可,但缺少早停/验证集监控,容易过拟合偏好数据。</li></ul>
+</div><h2 id="sec-12">篇内小思维导图</h2>
+<div class="mermaid-wrap"><div class="mermaid">flowchart TD
+    A["DPO 动机 跳过 RMPPO"] --&gt; B["核心关系 r β log ππref"]
+    B --&gt; C["代入 BradleyTerry 消去奖励"]
+    C --&gt; D["损失 -log σ β Δπ - Δref"]
+
+    E["dpo.jsonl 偏序对"] --&gt; F["chosen 与 rejected 同 prompt"]
+    F --&gt; G["apply_chat_template 加 tokenize"]
+    G --&gt; H["generate_loss_mask 只 assistant 段含 EOS"]
+    H --&gt; I["Shift Trick x ids-1 y ids1"]
+    I --&gt; J["6 张量 xy/mask 乘 chosen/rejected"]
+
+    J --&gt; K["train_epoch"]
+    K --&gt; L["cat 拼接 2B batch"]
+    L --&gt; M["ref_model no_grad 前向 ref_log_probs"]
+    L --&gt; N["policy model 前向 policy_log_probs"]
+    M --&gt; O["dpo_loss"]
+    N --&gt; O
+    O --&gt; P["sum/seq_len 长度归一化"]
+    P --&gt; Q["切分 chosen/rejected batch2"]
+    Q --&gt; R["pi_logratios - ref_logratios"]
+    R --&gt; S["-logsigmoid beta logits"]
+    S --&gt; T["梯度更新 policy ref frozen"]
+
+    U["超参"] --&gt; V["beta=0.1 控制 KL 偏离"]
+    U --&gt; W["lr=4e-8 比 SFT 小一档"]
+    U --&gt; X["epochs=1 偏好微调"]</div></div>
+<nav class="pager"><div class="pager__prev"><a href="11-sft.html"><span class="pager__label">← 上一篇</span>算法:Minimind 的 SFT</a></div><div class="pager__next" style="text-align:right"><a href="13-ppo.html"><span class="pager__label">下一篇 →</span>算法:Minimind 的 PPO</a></div></nav>
+</article>
+</main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', fontFamily: 'Noto Sans SC, sans-serif' });
+</script>
+<script>
+  if (window.hljs) hljs.highlightAll();
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ],
+      ignoredTags: ['script','noscript','style','textarea','pre','code'],
+      throwOnError: false
+    });
+  }
+</script>
+<script src="assets/nav.js"></script>
+</body>
+</html>

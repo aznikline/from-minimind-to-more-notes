@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>求职:大模型八股 100 问 — From Minimind to More</title>
+<meta name="description" content="作者按 7 大板块（Transformer 架构 / 位置编码与 Tokenizer / 预训练 / 微调 / 对齐 / 推理优化 / RAG·Agent·评测）罗列了约 100 道大模型面试高频题，纯题目列表无答案，主旨是&quot;成体系理解 + 项目实践 &amp;gt; 死磕八股&quot;。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
+</head>
+<body>
+<div class="progress-bar" role="progressbar" aria-label="阅读进度"></div>
+<div class="sidebar-backdrop"></div>
+<div class="layout">
+<aside class="sidebar" aria-label="目录">
+<button class="sidebar__toggle" aria-label="开关目录">☰</button>
+<div class="sidebar__brand"><a href="index.html">From Minimind<br/>to More</a></div>
+<div class="sidebar__sub">精读结构化笔记 · 16+1 篇</div>
+<nav class="toc"><div class="toc__group">基石</div>
+<div class="toc__item"><a class="toc__link " href="01-tokenizer.html"><span class="toc__num">01</span><span>基石:Tokenizer 你所需要知道的一切</span></a></div>
+<div class="toc__item"><a class="toc__link " href="02-design.html"><span class="toc__num">02</span><span>基石:Minimind 的设计目录</span></a></div>
+<div class="toc__item"><a class="toc__link " href="03-embedding-pos.html"><span class="toc__num">03</span><span>基石:Embedding 与位置编码</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">架构</div>
+<div class="toc__item"><a class="toc__link " href="04-norm.html"><span class="toc__num">04</span><span>架构:归一化技术(原理、演进与前沿)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="05-kvcache-flashattn.html"><span class="toc__num">05</span><span>架构:大模型优化方法(KV Cache → Flash Attention)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="06-moe.html"><span class="toc__num">06</span><span>架构:混合专家模型(MoE)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="07-assemble.html"><span class="toc__num">07</span><span>架构:超级拼装(搭建自己的大模型)</span></a></div>
+<div class="toc__item"><a class="toc__link " href="08-infer-train-opt.html"><span class="toc__num">08</span><span>架构(可选):大规模语言模型推理与训练优化机制</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">算法</div>
+<div class="toc__item"><a class="toc__link " href="09-rl-overview.html"><span class="toc__num">09</span><span>算法:大模型强化学习算法概览</span></a></div>
+<div class="toc__item"><a class="toc__link " href="10-pretrain.html"><span class="toc__num">10</span><span>算法:Minimind 的 Pretrain</span></a></div>
+<div class="toc__item"><a class="toc__link " href="11-sft.html"><span class="toc__num">11</span><span>算法:Minimind 的 SFT</span></a></div>
+<div class="toc__item"><a class="toc__link " href="12-dpo.html"><span class="toc__num">12</span><span>算法:Minimind 的 DPO</span></a></div>
+<div class="toc__item"><a class="toc__link " href="13-ppo.html"><span class="toc__num">13</span><span>算法:Minimind 的 PPO</span></a></div>
+<div class="toc__item"><a class="toc__link " href="14-grpo.html"><span class="toc__num">14</span><span>算法:Minimind 的 GRPO 及其变体</span></a></div>
+<div class="toc__item"><a class="toc__link " href="15-spo.html"><span class="toc__num">15</span><span>算法:Minimind 的 SPO</span></a></div>
+</nav>
+<nav class="toc"><div class="toc__group">求职</div>
+<div class="toc__item"><a class="toc__link is-current" href="16-interview-100.html"><span class="toc__num">16</span><span>求职:大模型八股 100 问</span></a><ul class="toc__sub"><li><a class="toc__sub-link" href="16-interview-100.html#sec-1">一句话精炼</a></li><li><a class="toc__sub-link" href="16-interview-100.html#sec-2">问题分类统计(按主题归簇)</a></li><li><a class="toc__sub-link" href="16-interview-100.html#sec-3">高频考点 TOP 列表(摘录最有代表性的 15-20 个问题原文)</a></li><li><a class="toc__sub-link" href="16-interview-100.html#sec-4">答案质量评估</a></li><li><a class="toc__sub-link" href="16-interview-100.html#sec-5">作者独到见解/类比</a></li><li><a class="toc__sub-link" href="16-interview-100.html#sec-6">面试考点(本身就是面试题,提炼出最值得准备的几类)</a></li><li><a class="toc__sub-link" href="16-interview-100.html#sec-7">批判性批注</a></li><li><a class="toc__sub-link" href="16-interview-100.html#sec-8">簇内小思维导图</a></li></ul></div>
+</nav>
+</aside>
+<main class="content">
+<article class="article">
+<div class="article__crumb"><a href="index.html">总图</a> / 求职</div>
+<h1 class="article__title">求职:大模型八股 100 问</h1>
+<p class="article__lead">作者按 7 大板块（Transformer 架构 / 位置编码与 Tokenizer / 预训练 / 微调 / 对齐 / 推理优化 / RAG·Agent·评测）罗列了约 100 道大模型面试高频题，纯题目列表无答案，主旨是"成体系理解 + 项目实践 &gt; 死磕八股"。</p>
+<h2 id="sec-1">一句话精炼</h2>
+<p>作者按 7 大板块（Transformer 架构 / 位置编码与 Tokenizer / 预训练 / 微调 / 对齐 / 推理优化 / RAG·Agent·评测）罗列了约 100 道大模型面试高频题，纯题目列表无答案，主旨是"成体系理解 + 项目实践 &gt; 死磕八股"。</p>
+<h2 id="sec-2">问题分类统计(按主题归簇)</h2>
+<p>文件实际共 <strong>100 题</strong>（第 7 部分标题写 89-100，但该部分内仅列 12 题，与 1-100 计数一致）。按板块归簇的数量分布如下：</p>
+<table><thead><tr><th>板块</th><th>题号</th><th>题数</th><th>占比</th></tr></thead><tbody><tr><td>一、Transformer 基础架构</td><td>1-20</td><td>20</td><td>20%</td></tr><tr><td>二、位置编码与 Tokenizer</td><td>21-30</td><td>10</td><td>10%</td></tr><tr><td>三、预训练 Pre-training</td><td>31-45</td><td>15</td><td>15%</td></tr><tr><td>四、微调 SFT &amp; PEFT</td><td>46-60</td><td>15</td><td>15%</td></tr><tr><td>五、对齐 Alignment (RLHF &amp; DPO)</td><td>61-75</td><td>15</td><td>15%</td></tr><tr><td>六、推理优化与量化</td><td>76-88</td><td>13</td><td>13%</td></tr><tr><td>七、RAG、Agent 与评测</td><td>89-100</td><td>12</td><td>12%</td></tr></tbody></table>
+<p>分布观察：架构(20)是最大头，对齐(15)+微调(15)+预训练(15) 三者并列构成"训练侧"主轴（合计 45%），推理优化(13)体现工程落地，应用层 RAG/Agent/评测(12) 偏薄。整体重心明显偏向<strong>算法原理与训练侧</strong>，工程部署与 Agent 工程链路占比偏低。</p>
+<h2 id="sec-3">高频考点 TOP 列表(摘录最有代表性的 15-20 个问题原文)</h2>
+<ol><li>请手写或详细描述 <strong>Self-Attention</strong> 的计算公式及物理含义。</li><li>Layer Norm 在 Transformer 中是 Pre-Norm 还是 Post-Norm？在大模型（如 Llama 2/3）中通常用哪种？为什么？</li><li>引入 SwiGLU 激活函数有什么优势？</li><li>为什么现在的 LLM 大多选择 <strong>Decoder-only</strong> 架构？</li><li>讲一下 <strong>GQA (Grouped Query Attention)</strong> 和 <strong>MQA (Multi-Query Attention)</strong> 的区别及其对性能/显存的影响。</li><li>解释一下 <strong>KV Cache</strong> 的原理。为什么它能加速推理？它会带来显存占用的问题吗？</li><li>解释 <strong>DeepSeek</strong> 或 <strong>Mixtral</strong> 使用的 <strong>MoE (Mixture of Experts)</strong> 架构原理。</li><li>什么是 <strong>RoPE (Rotary Positional Embedding)</strong>？它是如何利用复数运算实现相对位置信息的？</li><li>解释 <strong>Scaling Laws</strong> (Kaplan vs Chinchilla)。在给定算力预算下，如何权衡模型参数量和数据量？</li><li><strong>混合精度训练</strong> 的原理是什么？FP16 和 BF16 有什么区别？为什么大模型训练推荐用 BF16？</li><li>解释 <strong>ZeRO</strong> 的三个阶段（ZeRO-1, 2, 3）。</li><li>详细讲解 <strong>LoRA</strong> 的数学原理。</li><li><strong>QLoRA</strong> 相比 LoRA 做了哪些改进？</li><li>简述 <strong>RLHF</strong> 的三个主要阶段。</li><li>详细解释 <strong>PPO</strong> 在 RLHF 中的作用。</li><li>什么是 <strong>DPO (Direct Preference Optimization)</strong>？它相比 PPO 有什么优势？DPO 的 Loss Function 推导逻辑简述。</li><li>什么是 <strong>Speculative Decoding (投机采样/推测解码)</strong>？原理是什么？</li><li><strong>vLLM</strong> 框架的核心技术 <strong>PagedAttention</strong> 是解决了什么问题？</li><li>解释 <strong>GPTQ</strong> 和 <strong>AWQ</strong> 的区别。</li><li>什么是 <strong>GraphRAG</strong>？知识图谱如何辅助 RAG？</li></ol>
+<h2 id="sec-4">答案质量评估</h2>
+<p><strong>作者明确不写答案</strong>——这是该文件最关键的特征。原文第 5 行直陈："考虑到篇幅原因，我就不写回答了。看完我的 minimind 详解应该能回答一大部分了，然后有不懂了问问 AI，面试八股就差不多了。"</p>
+<p>因此本文档的"答案质量"评估为：</p>
+<ul><li><strong>存在性</strong>：零答案，纯题目清单。</li><li><strong>准确度</strong>：不适用（无可校对内容）。</li><li><strong>可使用性</strong>：题目本身措辞准确、术语规范、板块划分清晰，作为"复习提纲/自测清单"价值高；作为"学习材料"价值低，需要读者自行填答。</li></ul>
+<p>价值定位：它是<strong>导览索引</strong>而非<strong>教材</strong>，真正的知识载体被作者外置到"minimind 详解"项目 + AI 问答两条路径。</p>
+<h2 id="sec-5">作者独到见解/类比</h2>
+<p>作者几乎没有技术类比，但有两条值得注意的元观点（均为方法论而非技术）：</p>
+<ol><li><strong>反八股立场</strong>："大厂面试看中的核心是你对知识的成体系理解，所以不建议死磕八股，而是通过一个项目的实践，建立你对这个领域的系统性认知。"——即"八股只是地图，项目才是路"。</li><li><strong>复习策略分层</strong>：1-20 题与 LoRA 部分"要能手推公式或画架构图"；DPO、MoE、Flash Attention v2、vLLM 列为"加分项"。这暗示作者认为<strong>可推导的硬核原理 + 前沿工程热点</strong>才是面试分水岭，死记概念不划算。</li><li>（隐含）<strong>板块编排本身就是一种见解</strong>：把对齐(Alignment)单独成节并标注"高阶考点"，把推理优化标注"工程落地必问"——这两个标签比题目本身更能指导备战优先级。</li></ol>
+<h2 id="sec-6">面试考点(本身就是面试题,提炼出最值得准备的几类)</h2>
+<p>从这 100 题中抽取出最值得投入准备精力的考点簇（按 ROI 排序）：</p>
+<ol><li><strong>Transformer 内核可推导类</strong>：Self-Attention 公式、缩放因子 1/√d_k、Softmax 必要性、残差连接、Pre/Post-Norm 选择 —— 面试官最爱让"手推"的一组。</li><li><strong>现代 LLM 架构选型类</strong>：Decoder-only 为何胜出、SwiGLU、RoPE、GQA/MQA、RMSNorm、去 Bias —— Llama 系技术栈全貌。</li><li><strong>训练分布式类</strong>：ZeRO 1/2/3、3D 并行 (DP+TP+PP)、混合精度 FP16 vs BF16、梯度累积 —— 大规模训练工程面试核心。</li><li><strong>PEFT 参数高效微调类</strong>：LoRA 数学原理、r/α 选择、QLoRA 四件套、Prompt/Prefix/P-Tuning 区分 —— 实际工作最高频。</li><li><strong>对齐算法类</strong>：RLHF 三阶段、RM 损失、PPO、KL 散度惩罚、DPO 推导、IPO/KTO、Constitutional AI —— 算法岗分水岭。</li><li><strong>推理工程类</strong>：KV Cache、Speculative Decoding、PagedAttention、Continuous Batching、TTFT/TPOT、GPTQ vs AWQ —— 部署岗必问。</li><li><strong>应用与评测类</strong>：RAG 流程与 Lost-in-the-Middle、GraphRAG、HNSW、CoT/ReAct、Function Calling、Needle-in-Haystack —— 业务岗收尾题。</li></ol>
+<div class="section-critique"><h2 id="sec-7">批判性批注</h2>
+<p><strong>A. 过时 / 已被超越的点</strong></p>
+<ul><li><strong>Chinchilla scaling law 仍是默认</strong>（第 31 题）：2024 年起 Llama-3、DeepSeek-V3 等实证"过度训练"（data multiple 远超 20x Chinchilla 最优）反而更经济，Kaplan vs Chinchilla 二分已不足以描述现状，需补 "compute-optimal vs. over-training" 的最新讨论。</li><li><strong>第 75 题"RLHF vs RLAIF 趋势"</strong>：2026 视角下，主流已转向 <strong>GRPO / DAPO / RLVR</strong>（verifiable-reward RL，DeepSeek-R1、Qwen3 系）以及 self-reward / rule-based reward，纯 pairwise human/AI feedback 的"经典 RLHF/DPO"叙事明显退潮，本题应升级为"verifiable reward vs preference reward 之争"。</li><li><strong>第 65 题"Batch Size 对收敛影响"</strong>：在 muP / max LR scheduler / scheduler-free 等新范式下，单纯讨论 batch size 已不完整，需结合 LR–scale 协同。</li><li><strong>第 72 题"LLM → System 2"</strong>：2025 年 o1/o3、DeepSeek-R1、Claude 4 reasoning 模型已让"慢思考"从展望变为产品形态，本题的"看法"属性应转为"test-time scaling 实现机制（CoT 长度奖励/RLVR）"。</li><li><strong>评测榜单</strong>（第 96 题 MMLU/GSM8K/HumanEval/C-Eval）：2026 年这些榜单普遍污染 + 饱和，主流已转向 MMLU-Pro、GPQA-Diamond、AIME、LiveCodeBench、SWE-bench、HLE 等，原榜仅作背景。</li></ul>
+<p><strong>B. 缺失 / 该补而未补的题</strong></p>
+<ul><li><strong>缺少多模态专章</strong>：ViT 只在 1-20 收一题，CLIP/LLaVA/VLM 对齐、token 压缩、视频流式几乎未涉及——而多模态已是 2025-2026 必考点。</li><li><strong>缺少 Agent 工程链路</strong>：ReAct 一题不足以覆盖 2026 的 tool-use / planning / multi-agent / context-engineering / computer-use。</li><li><strong>缺少长上下文召回机制</strong>：YaRN 在第 42 题出现，但缺 RingAttention、Native Sparse Attention、MoBA、Mamba/hybrid SSM 等 2025 热门。</li><li><strong>缺少安全/对齐安全</strong>：无 jailbreak 防御、constitutional 之外的红队、reward hacking 只一题且偏理论。</li></ul>
+<p><strong>C. 可能误导的点</strong></p>
+<ul><li><strong>作者外置答案到"minimind 详解 + 问 AI"</strong>：2026 年用通用 AI 问答填八股风险是 AI 会给出<strong>过时答案</strong>（尤其对齐、scaling law、评测榜），读者需自带"时间戳"意识交叉验证。</li><li><strong>"加分项"清单</strong>（DPO/MoE/Flash Attn v2/vLLM）在 2026 已属<strong>标配</strong>而非加分项，继续按"加分"准备会低估预期。</li></ul>
+</div><h2 id="sec-8">簇内小思维导图</h2>
+<div class="mermaid-wrap"><div class="mermaid">mindmap
+  root((大模型八股100问))
+    一 Transformer架构
+      Self-Attention
+        公式
+        缩放因子1/√dk
+        Softmax必要性
+      Multi-Head &amp; 变体
+        MHA
+        MQA
+        GQA
+      结构细节
+        Pre/Post-Norm
+        FFN &amp; SwiGLU
+        Residual
+        Bias去留
+      架构选型
+        Encoder-only BERT
+        Decoder-only GPT
+        Enc-Dec T5
+      MoE
+        路由原理
+        负载均衡loss
+      稀疏注意力
+      KV Cache
+    二 位置编码 &amp; Tokenizer
+      绝对 vs 可学习
+      RoPE
+      ALiBi 外推
+      YaRN 长上下文
+      BPE/WordPiece/SentencePiece/Unigram
+      Byte-level BPE
+      OOV
+      词表大小权衡
+    三 预训练
+      Scaling Law Kaplan/Chinchilla
+      去重 MinHash/SimHash
+      数据质量 Textbooks
+      Loss Spike
+      混合精度 FP16/BF16
+      分布式
+        ZeRO 1/2/3
+        TP/PP
+        3D并行
+      CLM/MLM/PLM/UL2
+      课程学习
+      长上下文训练
+      Batch Size
+      梯度累积
+      Flash Attention
+    四 微调 SFT &amp; PEFT
+      SFT vs 预训练
+      LoRA 数学原理
+        Rank r
+        Alpha α
+      QLoRA
+        4-bit NF
+        Double Quant
+        Paged Optim
+      Prompt/Prefix/P-Tuning
+      AdaLoRA
+      指令质量 vs 多样性
+      NEFTune
+      多轮对话 Loss Masking
+      灾难性遗忘
+      Chat Vector
+      全量 vs LoRA 差距
+      Adapter 多任务
+      Epoch 过拟合
+    五 对齐
+      RLHF 三阶段
+      Reward Model 损失
+      KL散度惩罚
+      PPO
+      DPO
+        推导消RM
+        Reference Model
+      Rejection Sampling
+      IPO / KTO
+      Alignment Tax
+      偏好数据 A vs B
+      Constitutional AI
+      Reward Hacking
+      RLAIF 趋势
+    六 推理优化与量化
+      解码策略 Greedy/Beam/Topk/Topp
+      Temperature
+      Speculative Decoding
+      vLLM PagedAttention
+      量化 PTQ/QAT
+      GPTQ vs AWQ
+      4-bit 不掉点
+      KV Cache Quantization
+      Continuous Batching
+      TTFT / TPOT
+      7B FP16 显存估算
+      TensorRT-LLM
+      StreamingLLM
+    七 RAG/Agent/评测
+      RAG 流程
+      Chunking
+      Lost in the Middle
+      GraphRAG
+      Vector DB / HNSW
+      CoT
+      ReAct
+      评测榜 MMLU/GSM8K/HumanEval/C-Eval
+      Needle in Haystack
+      幻觉根因
+      Function Calling
+      System 2 慢思考</div></div>
+<nav class="pager"><div class="pager__prev"><a href="15-spo.html"><span class="pager__label">← 上一篇</span>算法:Minimind 的 SPO</a></div><div></div></nav>
+</article>
+</main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', fontFamily: 'Noto Sans SC, sans-serif' });
+</script>
+<script>
+  if (window.hljs) hljs.highlightAll();
+  if (window.renderMathInElement) {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ],
+      ignoredTags: ['script','noscript','style','textarea','pre','code'],
+      throwOnError: false
+    });
+  }
+</script>
+<script src="assets/nav.js"></script>
+</body>
+</html>
