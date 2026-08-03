@@ -4,24 +4,61 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>From Minimind to More — 精读结构化笔记</title>
+<meta name="description" content="对 from-minimind-to-more 全 17 篇正文的逐篇精读合成笔记。minimind 26M 教学级 LLM，Tokenizer→架构→训练算法→对齐→求职一条龙。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Benne&display=swap">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 <div class="progress-bar"></div>
-<main class="landing">
-  <p class="article__crumb"><a href="overview.html">进入总图 →</a></p>
-  <h1 class="landing__title">From Minimind<br/>to More</h1>
-  <p class="landing__sub">对 from-minimind-to-more 全 17 篇正文的逐篇精读合成笔记。
-  minimind 是 26M 的「从零训练 LLM」教学项目，以它为骨架，把 Tokenizer → 架构 → 训练算法 → 对齐 → 求职 一条龙讲透。</p>
-  <div class="landing__paths">
-    <p class="article__crumb" style="margin:0 0 0.4rem">阅读路径</p>
-    <a class="landing__path" href="overview.html"><b>新手</b><span>02 → 01 → 03 → 04 → 07 → 10 → 11 → 09 → 16</span></a><a class="landing__path" href="overview.html"><b>求职冲刺</b><span>16 → 04/05/06 → 09 → 12/13/14 → 速查表</span></a><a class="landing__path" href="overview.html"><b>算法岗</b><span>09 → 12 → 14 → 15 → 13 → 10/11</span></a><a class="landing__path" href="overview.html"><b>工程/推理</b><span>05 → 08 → 06 → 07 → 速查表</span></a>
+<header class="site-header">
+<div class="header-inner">
+<a class="brand" href="index.html">From Minimind to More<small>精读结构化笔记</small></a>
+<nav class="nav">
+<span class="nav-group">基石</span>
+<a href="01-tokenizer.html" title="基石:Tokenizer 你所需要知道的一切">01</a>
+<a href="02-design.html" title="基石:Minimind 的设计目录">02</a>
+<a href="03-embedding-pos.html" title="基石:Embedding 与位置编码">03</a>
+<span class="nav-group">架构</span>
+<a href="04-norm.html" title="架构:归一化技术(原理、演进与前沿)">04</a>
+<a href="05-kvcache-flashattn.html" title="架构:大模型优化方法(KV Cache → Flash Attention)">05</a>
+<a href="06-moe.html" title="架构:混合专家模型(MoE)">06</a>
+<a href="07-assemble.html" title="架构:超级拼装(搭建自己的大模型)">07</a>
+<a href="08-infer-train-opt.html" title="架构(可选):大规模语言模型推理与训练优化机制">08</a>
+<span class="nav-group">算法</span>
+<a href="09-rl-overview.html" title="算法:大模型强化学习算法概览">09</a>
+<a href="10-pretrain.html" title="算法:Minimind 的 Pretrain">10</a>
+<a href="11-sft.html" title="算法:Minimind 的 SFT">11</a>
+<a href="12-dpo.html" title="算法:Minimind 的 DPO">12</a>
+<a href="13-ppo.html" title="算法:Minimind 的 PPO">13</a>
+<a href="14-grpo.html" title="算法:Minimind 的 GRPO 及其变体">14</a>
+<a href="15-spo.html" title="算法:Minimind 的 SPO">15</a>
+<span class="nav-group">求职</span>
+<a href="16-interview-100.html" title="求职:大模型八股 100 问">16</a>
+</nav>
+<button class="nav-toggle" aria-label="切换目录">☰</button>
+</div></header>
+<main>
+  <section class="hero">
+    <h1>From Minimind to More</h1>
+    <p>对 from-minimind-to-more 全 17 篇正文的逐篇精读合成笔记。</p>
+    <p class="src"><a href="https://github.com/Tongyun1/from-minimind-to-more" target="_blank" rel="noopener">github.com/Tongyun1/from-minimind-to-more</a> · 16 篇正文 + 总图 · 含思维导图 / 公式 / 源码要点 / 批判性批注</p>
+  </section>
+
+  <h2 class="section-title">阅读路径</h2>
+  <div class="cards">
+    <a class="card" href="overview.html"><h3>新手</h3><div class="sub">02 → 01 → 03 → 04 → 07 → 10 → 11 → 09 → 16</div></a><a class="card" href="overview.html"><h3>求职冲刺</h3><div class="sub">16 → 04/05/06 → 09 → 12/13/14 → 速查表</div></a><a class="card" href="overview.html"><h3>算法岗</h3><div class="sub">09 → 12 → 14 → 15 → 13 → 10/11</div></a><a class="card" href="overview.html"><h3>工程/推理</h3><div class="sub">05 → 08 → 06 → 07 → 速查表</div></a>
   </div>
-  <a class="landing__cta" href="overview.html">从总图开始 →</a>
+
+  <h2 class="section-title">各篇精读</h2>
+  <div class="cards">
+    <a class="card" href="01-tokenizer.html"><h3>01 · 基石:Tokenizer 你所需要知道的一切</h3><div class="sub">子词分词是连接自然语言与机器的桥梁,BPE 以频率合并为基石。</div><div class="meta">基石</div></a><a class="card" href="02-design.html"><h3>02 · 基石:Minimind 的设计目录</h3><div class="sub">MiniMind 用 26M 的极小体量对齐 Llama 3 / DeepSeek-V2 的前沿设计（Decoder-O…</div><div class="meta">基石</div></a><a class="card" href="03-embedding-pos.html"><h3>03 · 基石:Embedding 与位置编码</h3><div class="sub">本文以&quot;分布语义学→位置编码演进→RoPE 复数旋转→NTK/YaRN 频域外推&quot;为主线,讲透了 LLM 如何把离散符号…</div><div class="meta">基石</div></a><a class="card" href="04-norm.html"><h3>04 · 架构:归一化技术(原理、演进与前沿)</h3><div class="sub">归一化从 BN→LN→RMSNorm、Post→Pre、再到 DeepNorm/QK-Norm/Sandwich-Nor…</div><div class="meta">架构</div></a><a class="card" href="05-kvcache-flashattn.html"><h3>05 · 架构:大模型优化方法(KV Cache → Flash Attention)</h3><div class="sub">LLM 推理瓶颈已从算力(FLOPS)转向显存带宽与容量,KV Cache 用空间换时间消除自回归冗余计算,GQA/MQ…</div><div class="meta">架构</div></a><a class="card" href="06-moe.html"><h3>06 · 架构:混合专家模型(MoE)</h3><div class="sub">MoE 通过稀疏激活与条件计算,把&quot;模型总参数量(知识容量)&quot;与&quot;单 token 激活参数量(算力成本)&quot;解耦——以 D…</div><div class="meta">架构</div></a><a class="card" href="07-assemble.html"><h3>07 · 架构:超级拼装(搭建自己的大模型)</h3><div class="sub">把前文各模块(embedding/RMSNorm/Attention/FFN 或 MoE/lm_head)按 Pre-N…</div><div class="meta">架构</div></a><a class="card" href="08-infer-train-opt.html"><h3>08 · 架构(可选):大规模语言模型推理与训练优化机制</h3><div class="sub">LLM 优化的本质是:在 Prefill 受计算墙、Decode 受存储墙的物理约束下,沿注意力(MHA→MQA→GQA…</div><div class="meta">架构</div></a><a class="card" href="09-rl-overview.html"><h3>09 · 算法:大模型强化学习算法概览</h3><div class="sub">大模型 RL 的演进主线是&quot;去 Critic、去显式 RM、粒度精细化&quot;:从 TRPO/PPO 的信任区域 + 四模型架…</div><div class="meta">算法</div></a><a class="card" href="10-pretrain.html"><h3>10 · 算法:Minimind 的 Pretrain</h3><div class="sub">Minimind 的预训练以 Causal LM（自回归下一词预测）为目标，用「指令对数据」做无监督 Continued…</div><div class="meta">算法</div></a><a class="card" href="11-sft.html"><h3>11 · 算法:Minimind 的 SFT</h3><div class="sub">SFT 与 Pretrain 训练框架几乎同构（同为监督学习），其灵魂全在 Dataset 层：用 chat templ…</div><div class="meta">算法</div></a><a class="card" href="12-dpo.html"><h3>12 · 算法:Minimind 的 DPO</h3><div class="sub">DPO 用同一个 SFT 模型充当&quot;参考&quot;与&quot;策略&quot;两份角色，直接在 chosen/rejected 偏序对上做带 lo…</div><div class="meta">算法</div></a><a class="card" href="13-ppo.html"><h3>13 · 算法:Minimind 的 PPO</h3><div class="sub">Minimind 把 PPO 四模型(actor / old_actor / ref / critic)压在同一台 GP…</div><div class="meta">算法</div></a><a class="card" href="14-grpo.html"><h3>14 · 算法:Minimind 的 GRPO 及其变体</h3><div class="sub">GRPO 用&quot;同 Prompt 组内采样 + Z-score 归一化优势&quot;取代了 PPO 的 Critic,把显存砍掉一…</div><div class="meta">算法</div></a><a class="card" href="15-spo.html"><h3>15 · 算法:Minimind 的 SPO</h3><div class="sub">SPO 用一个纯数学的&quot;指数移动平均 + Beta 分布&quot;历史基线追踪器（&lt;code&gt;AutoAdaptiveValue…</div><div class="meta">算法</div></a><a class="card" href="16-interview-100.html"><h3>16 · 求职:大模型八股 100 问</h3><div class="sub">作者按 7 大板块（Transformer 架构 / 位置编码与 Tokenizer / 预训练 / 微调 / 对齐 /…</div><div class="meta">求职</div></a>
+  </div>
 </main>
+<footer>
+<p>对 <a href="https://github.com/Tongyun1/from-minimind-to-more" target="_blank" rel="noopener">from-minimind-to-more</a>（minimind / jingyaogong）的逐篇精读结构化笔记。非官方，内容版权归原作者。</p>
+</footer>
 <script src="assets/nav.js"></script>
 </body>
 </html>

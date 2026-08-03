@@ -1,97 +1,39 @@
 /* ============================================================
-   FMMTM Notes — 阅读交互
-   侧栏当前篇/段高亮 + 阅读进度条 + 锚点平滑滚动 + 窄屏抽屉
+   FMMTM Notes — 阅读交互(broadsheet 版)
+   进度条 + 锚点平滑滚动 + 窄屏顶栏抽屉。无侧栏。
    ============================================================ */
 (() => {
   'use strict';
-
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ---- 顶部阅读进度条 ---- */
+  /* 顶部进度条 */
   const bar = document.querySelector('.progress-bar');
   const onScroll = () => {
     if (!bar) return;
     const h = document.documentElement;
     const max = h.scrollHeight - h.clientHeight;
-    const pct = max > 0 ? (h.scrollTop / max) * 100 : 0;
-    bar.style.width = pct.toFixed(2) + '%';
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0).toFixed(2) + '%';
   };
   document.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
-  /* ---- IntersectionObserver: 当前篇高亮 + 当前段高亮 ---- */
-  const currentHref = location.pathname.split('/').pop() || 'index.html';
-  document.querySelectorAll('.toc__link').forEach(a => {
-    const href = a.getAttribute('href') || '';
-    if (href === currentHref || href.endsWith('/' + currentHref)) {
-      a.classList.add('is-current');
-      const sub = a.parentElement?.querySelector('.toc__sub');
-      if (sub) sub.style.display = '';
-    }
-  });
-
-  // 段级:H2 进入视口时高亮对应子锚点
-  // sub-link 的 href 形如 "01-tokenizer.html#sec-1",取 # 后部分作元素 id
-  const subLinks = Array.from(document.querySelectorAll('.toc__sub-link'));
-  if (subLinks.length && 'IntersectionObserver' in window) {
-    const sectionsById = new Map(); // key: 元素 id(如 "sec-1")
-    subLinks.forEach(a => {
-      const href = a.getAttribute('href') || '';
-      const hashIdx = href.indexOf('#');
-      if (hashIdx < 0) return;
-      const eid = href.slice(hashIdx + 1);
-      const el = document.getElementById(eid);
-      if (el) sectionsById.set(eid, { el, link: a });
-    });
-    const visible = new Map();
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        const eid = e.target.id;
-        if (sectionsById.has(eid)) {
-          if (e.isIntersecting) visible.set(eid, e.intersectionRatio);
-          else visible.delete(eid);
-        }
-      });
-      let best = null, bestRatio = 0;
-      for (const [eid, r] of visible) {
-        if (r > bestRatio) { bestRatio = r; best = eid; }
-      }
-      subLinks.forEach(a => {
-        const href = a.getAttribute('href') || '';
-        const eid = href.slice(href.indexOf('#') + 1);
-        a.classList.toggle('is-current', eid === best);
-      });
-    }, { rootMargin: '-15% 0px -70% 0px', threshold: [0, 0.25, 0.5, 1] });
-    for (const { el } of sectionsById.values()) io.observe(el);
-  }
-
-  /* ---- 锚点点击:平滑滚动 ---- */
+  /* 锚点平滑滚动 */
   document.querySelectorAll('a[href^="#"]').forEach(a => {
     a.addEventListener('click', (e) => {
       const id = a.getAttribute('href');
       if (!id || id === '#') return;
-      const target = document.getElementById(id.slice(1));
-      if (!target) return;
+      const t = document.getElementById(id.slice(1));
+      if (!t) return;
       e.preventDefault();
-      target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+      t.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
       history.replaceState(null, '', id);
     });
   });
 
-  /* ---- 窄屏抽屉 ---- */
-  const toggle = document.querySelector('.sidebar__toggle');
-  const sidebar = document.querySelector('.sidebar');
-  const backdrop = document.querySelector('.sidebar-backdrop');
-  const openDrawer = () => { sidebar?.classList.add('is-open'); backdrop?.classList.add('is-open'); };
-  const closeDrawer = () => { sidebar?.classList.remove('is-open'); backdrop?.classList.remove('is-open'); };
-  toggle?.addEventListener('click', () => {
-    sidebar?.classList.contains('is-open') ? closeDrawer() : openDrawer();
-  });
-  backdrop?.addEventListener('click', closeDrawer);
-  sidebar?.addEventListener('click', (e) => {
-    if (e.target.closest('a')) closeDrawer();
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && sidebar?.classList.contains('is-open')) closeDrawer();
-  });
+  /* 窄屏顶栏抽屉 */
+  const toggle = document.querySelector('.nav-toggle');
+  const nav = document.querySelector('.nav');
+  toggle?.addEventListener('click', () => nav?.classList.toggle('is-open'));
+  nav?.addEventListener('click', (e) => { if (e.target.closest('a')) nav.classList.remove('is-open'); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') nav?.classList.remove('is-open'); });
 })();
