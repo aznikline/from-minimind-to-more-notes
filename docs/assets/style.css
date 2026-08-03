@@ -2,7 +2,7 @@
    FMMTM Notes — 参考 situational-awareness 站设计语言
    白底 / Benne + Noto Serif SC / 深灰正文 / 紫链接 / 细边框 / 大留白
    组件:hero · stats · cards · reader · prose · critique · pager
-   暗色:跟随系统 prefers-color-scheme,精修而非反色。
+   仅浅色(白底),不跟随系统暗色。
    ============================================================ */
 
 :root {
@@ -31,25 +31,6 @@
   --duration: 150ms;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --radius: 2px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #191917;
-    --fg: #c6c2b8;
-    --fg-strong: #f0ede6;
-    --muted: #8f8a80;
-    --border: #3a3833;
-    --border-soft: #2b2925;
-    --link: #b46bff;
-    --link-hover: #cd8dff;
-    --code-bg: #22211e;
-    --code-border: #33312c;
-    --hover-tint: #22211e;
-    --crit-bg: #2a1715;
-    --crit-fg: #e08a80;
-    --crit-rule: #a04848;
-  }
 }
 
 *, *::before, *::after { box-sizing: border-box; }

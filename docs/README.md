@@ -40,6 +40,6 @@ docs/
 
 - **风格**：参考 situational-awareness.ai 站设计语言——白底 / Benne + Noto Serif SC / 深灰正文 / 紫链接 / 细边框 / 大留白。
 - **字体配对**：Benne(英文展示) + Noto Serif SC(中文正文) / Noto Sans SC(UI 标签) / JetBrains Mono(代码)。
-- **暗色**：跟随系统 `prefers-color-scheme`，精修而非反色，强调色提亮。
+- **配色**：固定浅色(白底)，不跟随系统暗色。
 - **交互**：顶部 sticky 导航(总图 + 01-16 分组) + 阅读进度条 + 窄屏抽屉。
 - **内容渲染**：Mermaid(mindmap/flowchart 客户端渲染)、LaTeX(KaTeX auto-render)、代码(highlight.js)、1px 网格表格、批判性批注段(暗红卡片标记)。
