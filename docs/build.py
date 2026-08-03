@@ -3,14 +3,16 @@
 """
 FMMTM Notes 静态阅读站构建脚本.
 
-读所有 NN_*.md (17 篇) -> 渲染 HTML -> 套纸墨布局模板 -> 输出 site/*.html
+读所有 NN_*.md (17 篇) -> 渲染 HTML -> 套纸墨布局模板 -> 输出 docs/*.html
+(输出到 docs/ 以便 GitHub Pages 直接从 main/docs 服)
+
 - 优先用 python-markdown (含 fenced_code/tables/toc/attr_list)
 - 无依赖回退:内置极简渲染器覆盖 heading/list/para/code/table/blockquote
 - Mermaid:保留 ```mermaid 代码块,前端 mermaid.js 渲染
 - LaTeX:保留 $$...$$ 与 $...$,前端 KaTeX auto-render
 - 特殊 token (<|im_end|> </answer> 等):python-markdown 自动转义;回退器手动转义
 
-用法: python3 site/build.py
+用法: python3 docs/build.py
 """
 from __future__ import annotations
 import os
@@ -20,9 +22,8 @@ import html
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent  # 仓库根
-SITE = Path(__file__).resolve().parent         # site/
+OUT = Path(__file__).resolve().parent           # docs/ (输出目录)
 
-# ---- markdown 依赖探测 ----
 try:
     import markdown as _md
     _HAS_MD = True
@@ -30,36 +31,19 @@ except Exception:
     _HAS_MD = False
 
 
-# ============================================================
-# 极简回退渲染器(无依赖时兜底)
-# 覆盖:heading/paragraph/ul/ol/code-fence/table/blockquote/inline
-# ============================================================
 def _escape(s: str) -> str:
     return html.escape(s, quote=False)
 
 
 def _inline(s: str) -> str:
-    """inline: 转义 + 粗排 bold/code. 不做链接(笔记内多为文件名)."""
     s = _escape(s)
-    # **bold**
     s = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', s)
-    # *italic* / _italic_ (保守,只处理成对 *)
     s = re.sub(r'(?<!\*)\*([^*\n]+?)\*(?!\*)', r'<em>\1</em>', s)
-    # `code`
     s = re.sub(r'`([^`]+)`', r'<code>\1</code>', s)
     return s
 
 
-_FALLBACK_TABLES = {}
-
-
 def _fallback_render(md_text: str) -> str:
-    """极简渲染:按行状态机. 输出 HTML body 字符串.
-
-    覆盖:heading/paragraph/ul/ol/code-fence/table/blockquote/inline bold/code/italic.
-    H1 跳过(标题由布局单独渲染). H2/H3 生成稳定 id: sec-1, sec-2 ...
-    特殊 token(<|im_end|> </answer> 等)走 _escape 转义.
-    """
     lines = md_text.splitlines()
     out: list[str] = []
     i = 0
@@ -69,7 +53,6 @@ def _fallback_render(md_text: str) -> str:
         line = lines[i]
         stripped = line.strip()
 
-        # 代码块(fenced)
         m = re.match(r'^```(\w*)\s*$', stripped)
         if m:
             lang = m.group(1) or 'text'
@@ -78,16 +61,14 @@ def _fallback_render(md_text: str) -> str:
             while i < n and not re.match(r'^```\s*$', lines[i].strip()):
                 code_lines.append(lines[i])
                 i += 1
-            i += 1  # 跳过闭合 ```
+            i += 1
             cls = ' class="language-' + lang + '"' if lang != 'text' else ''
-            code_html = _escape('\n'.join(code_lines))
-            out.append(f'<pre><code{cls}>{code_html}</code></pre>')
+            out.append(f'<pre><code{cls}>{_escape(chr(10).join(code_lines))}</code></pre>')
             continue
 
-        # 表格(| ... | 表头 + |---| 分隔行)
         if stripped.startswith('|') and i + 1 < n and re.match(r'^\s*\|[\s:|-]+\|\s*$', lines[i + 1]):
             header = [c.strip() for c in stripped.strip('|').split('|')]
-            i += 2  # 跳过分隔行
+            i += 2
             rows: list[list[str]] = []
             while i < n and lines[i].strip().startswith('|'):
                 rows.append([c.strip() for c in lines[i].strip().strip('|').split('|')])
@@ -101,22 +82,18 @@ def _fallback_render(md_text: str) -> str:
             out.append(''.join(t))
             continue
 
-        # 标题
         m = re.match(r'^(#{1,6})\s+(.+?)\s*$', stripped)
         if m:
             level = len(m.group(1))
             text = _inline(m.group(2))
             if level == 1:
-                # H1 跳过(由 .article__title 单独渲染)
                 i += 1
                 continue
             sec_counter += 1
-            sid = f'sec-{sec_counter}'
-            out.append(f'<h{level} id="{sid}">{text}</h{level}>')
+            out.append(f'<h{level} id="sec-{sec_counter}">{text}</h{level}>')
             i += 1
             continue
 
-        # 引用
         if stripped.startswith('>'):
             bq_lines: list[str] = []
             while i < n and lines[i].strip().startswith('>'):
@@ -125,7 +102,6 @@ def _fallback_render(md_text: str) -> str:
             out.append(f'<blockquote>{_inline(" ".join(bq_lines))}</blockquote>')
             continue
 
-        # 无序列表(- 或 * 开头;支持子项缩进)
         if re.match(r'^[-*]\s+', stripped):
             items: list[str] = []
             while i < n and re.match(r'^\s*[-*]\s+', lines[i]):
@@ -134,7 +110,6 @@ def _fallback_render(md_text: str) -> str:
             out.append('<ul>' + ''.join(f'<li>{_inline(it)}</li>' for it in items) + '</ul>')
             continue
 
-        # 有序列表
         if re.match(r'^\d+\.\s+', stripped):
             items2: list[str] = []
             while i < n and re.match(r'^\s*\d+\.\s+', lines[i]):
@@ -143,23 +118,17 @@ def _fallback_render(md_text: str) -> str:
             out.append('<ol>' + ''.join(f'<li>{_inline(it)}</li>' for it in items2) + '</ol>')
             continue
 
-        # 空行
         if not stripped:
             i += 1
             continue
 
-        # 段落(连续非空行合并,直到遇块级语法)
         para: list[str] = []
         while i < n:
             cur = lines[i]
             s = cur.strip()
-            if (not s
-                or re.match(r'^#{1,6}\s', s)
-                or re.match(r'^[-*]\s', s)
-                or re.match(r'^\d+\.\s', s)
-                or s.startswith('>')
-                or s.startswith('|')
-                or re.match(r'^```', s)):
+            if (not s or re.match(r'^#{1,6}\s', s) or re.match(r'^[-*]\s', s)
+                    or re.match(r'^\d+\.\s', s) or s.startswith('>') or s.startswith('|')
+                    or re.match(r'^```', s)):
                 break
             para.append(cur.rstrip())
             i += 1
@@ -167,12 +136,9 @@ def _fallback_render(md_text: str) -> str:
             out.append(f'<p>{_inline(" ".join(para))}</p>')
         else:
             i += 1
-    return '\n'.join(out)
+    return chr(10).join(out)
 
 
-# ============================================================
-# Markdown 渲染(优先 python-markdown)
-# ============================================================
 _MD_EXTS = ['fenced_code', 'tables', 'toc', 'attr_list', 'sane_lists']
 
 
@@ -182,9 +148,6 @@ def render_markdown(text: str) -> str:
     return _fallback_render(text)
 
 
-# ============================================================
-# 笔记元数据
-# ============================================================
 GROUPS = [
     ('基石', [1, 2, 3]),
     ('架构', [4, 5, 6, 7, 8]),
@@ -194,84 +157,58 @@ GROUPS = [
 
 
 def slug_of(path: Path) -> str:
-    name = path.stem  # 00_OVERVIEW / 01_tokenizer
-    # NN_topic -> NN-topic
-    name = re.sub(r'_', '-', name)
+    name = re.sub(r'_', '-', path.stem)
     return name + '.html'
 
 
 def title_of(path: Path, body_html: str, md_text: str = '') -> str:
-    """首个 H1. 优先从 markdown 源首行 # 取(回退器会丢掉 H1)."""
-    # 1. markdown 源首行 # 标题
     if md_text:
         first = md_text.lstrip().splitlines()[0] if md_text.strip() else ''
         m = re.match(r'^#\s+(.+?)\s*$', first)
         if m:
             return m.group(1).strip()
-    # 2. HTML 里的 H1(python-markdown 保留时)
     m = re.search(r'<h1[^>]*>(.+?)</h1>', body_html, re.S)
     if m:
         return re.sub(r'<[^>]+>', '', m.group(1)).strip()
-    # 3. 文件名兜底
     stem = path.stem
     m2 = re.match(r'^\d+_(.+)$', stem)
     return m2.group(1) if m2 else stem
 
 
 def lead_of(body_html: str) -> str:
-    """一句话精炼:H2 一句话精炼 下的首段."""
-    # 找 <h2 id="...一句话精炼..."> 后的第一个 <p>
     m = re.search(r'<h2[^>]*>[^<]*一句话精炼[^<]*</h2>\s*(?:<p>(.+?)</p>)?', body_html, re.S)
     if m and m.group(1):
         return m.group(1).strip()
-    # 回退:第一个 <p>
     m2 = re.search(r'<p>(.+?)</p>', body_html, re.S)
     return m2.group(1).strip() if m2 else ''
 
 
 def sections_of(body_html: str) -> list[tuple[str, str]]:
-    """提取 H2 id+text 作为篇内锚点."""
     out = []
     for m in re.finditer(r'<h2[^>]*id="([^"]*)"[^>]*>(.+?)</h2>', body_html, re.S):
-        sid = m.group(1)
-        text = re.sub(r'<[^>]+>', '', m.group(2)).strip()
-        out.append((sid, text))
+        out.append((m.group(1), re.sub(r'<[^>]+>', '', m.group(2)).strip()))
     return out
 
 
 def critique_markup(body_html: str) -> str:
-    """把 批判性批注 H2 段包裹成 .section-critique."""
-    # 匹配 <h2 ...id=...>...批判性批注...</h2> 到下一个 <h2 或文末
-    pat = re.compile(
-        r'(<h2[^>]*>[^<]*批判性批注[^<]*</h2>)(.*?)(?=<h2|\Z)',
-        re.S
-    )
+    pat = re.compile(r'(<h2[^>]*>[^<]*批判性批注[^<]*</h2>)(.*?)(?=<h2|\Z)', re.S)
 
     def wrap(m: re.Match) -> str:
-        head = m.group(1)
-        rest = m.group(2)
-        return f'<div class="section-critique">{head}{rest}</div>'
+        return f'<div class="section-critique">{m.group(1)}{m.group(2)}</div>'
     return pat.sub(wrap, body_html)
 
 
-# ============================================================
-# 侧栏 + 布局模板
-# ============================================================
 def build_sidebar(notes: list[dict], current_slug: str) -> str:
-    """notes: [{slug,title,group,sections}]"""
     parts = ['<aside class="sidebar" aria-label="目录">',
-              '<button class="sidebar__toggle" aria-label="开关目录">☰</button>',
-              '<div class="sidebar__brand"><a href="index.html">From Minimind<br/>to More</a></div>',
-              '<div class="sidebar__sub">精读结构化笔记 · 16+1 篇</div>']
-
-    # 总图单独置顶
+             '<button class="sidebar__toggle" aria-label="开关目录">☰</button>',
+             '<div class="sidebar__brand"><a href="index.html">From Minimind<br/>to More</a></div>',
+             '<div class="sidebar__sub">精读结构化笔记 · 16+1 篇</div>']
     overview = next((n for n in notes if n['slug'] == 'overview.html'), None)
     if overview:
         is_cur = 'is-current' if current_slug == overview['slug'] else ''
         parts.append(f'<nav class="toc"><div class="toc__group">总图</div>'
                      f'<div class="toc__item"><a class="toc__link {is_cur}" href="{overview["slug"]}">'
                      f'<span class="toc__num">00</span><span>{overview["title"]}</span></a></div></nav>')
-
     by_num = {n['num']: n for n in notes if 'num' in n}
     for gname, nums in GROUPS:
         parts.append(f'<nav class="toc"><div class="toc__group">{gname}</div>')
@@ -280,25 +217,20 @@ def build_sidebar(notes: list[dict], current_slug: str) -> str:
             if not n:
                 continue
             is_cur = 'is-current' if current_slug == n['slug'] else ''
-            sub_style = '' if current_slug == n['slug'] else ' style="display:none"'
-            sub = ''.join(
-                f'<li><a class="toc__sub-link" href="{n["slug"]}#{sid}">{txt}</a></li>'
-                for sid, txt in n['sections']
-            ) if current_slug == n['slug'] else ''
+            sub = (''.join(f'<li><a class="toc__sub-link" href="{n["slug"]}#{sid}">{txt}</a></li>'
+                          for sid, txt in n['sections']) if current_slug == n['slug'] else '')
             parts.append(
                 f'<div class="toc__item">'
                 f'<a class="toc__link {is_cur}" href="{n["slug"]}">'
                 f'<span class="toc__num">{n["num"]:02d}</span><span>{n["title"]}</span></a>'
-                + (f'<ul class="toc__sub"{sub_style}>{sub}</ul>' if sub else '')
-                + '</div>'
-            )
+                + (f'<ul class="toc__sub">{sub}</ul>' if sub else '')
+                + '</div>')
         parts.append('</nav>')
     parts.append('</aside>')
-    return '\n'.join(parts)
+    return chr(10).join(parts)
 
 
 def mermaid_wrap(body_html: str) -> str:
-    """给 mermaid pre>code 包一层 wrap 便于样式."""
     return re.sub(
         r'<pre><code class="language-mermaid">(.*?)</code></pre>',
         r'<div class="mermaid-wrap"><div class="mermaid">\1</div></div>',
@@ -371,16 +303,12 @@ def build_page(notes, current: dict, prev: dict | None, nxt: dict | None) -> str
     lead_html = f'<p class="article__lead">{lead}</p>' if lead else ''
     crumb_html = (f'<div class="article__crumb"><a href="index.html">总图</a> / '
                   f'{current.get("group","")}</div>') if current.get('group') else ''
-
-    # pager
     prev_html = (f'<div class="pager__prev"><a href="{prev["slug"]}">'
                  f'<span class="pager__label">← 上一篇</span>{prev["title"]}</a></div>') if prev else '<div></div>'
     nxt_html = (f'<div class="pager__next" style="text-align:right"><a href="{nxt["slug"]}">'
                 f'<span class="pager__label">下一篇 →</span>{nxt["title"]}</a></div>') if nxt else '<div></div>'
     pager = f'<nav class="pager">{prev_html}{nxt_html}</nav>'
-
     sidebar = build_sidebar([{**n, 'sections': (sections if n is current else n.get('sections', []))} for n in notes], current['slug'])
-
     return PAGE_TPL.format(
         page_title=html.escape(title),
         desc=html.escape(lead[:140]),
@@ -393,9 +321,6 @@ def build_page(notes, current: dict, prev: dict | None, nxt: dict | None) -> str
     )
 
 
-# ============================================================
-# 首页
-# ============================================================
 def build_landing(notes) -> str:
     paths = [
         ('新手', '02 → 01 → 03 → 04 → 07 → 10 → 11 → 09 → 16'),
@@ -407,7 +332,7 @@ def build_landing(notes) -> str:
         f'<a class="landing__path" href="overview.html"><b>{name}</b><span>{seq}</span></a>'
         for name, seq in paths
     )
-    landing_html = f"""<!DOCTYPE html>
+    return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -434,19 +359,19 @@ def build_landing(notes) -> str:
 <script src="assets/nav.js"></script>
 </body>
 </html>"""
-    return landing_html
 
 
-# ============================================================
-# 主流程
-# ============================================================
 def main():
     md_files = sorted([p for p in ROOT.glob('[0-9][0-9]_*.md')])
     if not md_files:
         print('错误:未在仓库根找到 NN_*.md', file=sys.stderr)
         sys.exit(1)
 
-    print(f'渲染 {len(md_files)} 篇笔记 ...')
+    # 清空 OUT 下旧 .html(保留 assets/)
+    for old in OUT.glob('*.html'):
+        old.unlink()
+
+    print(f'渲染 {len(md_files)} 篇笔记 -> {OUT}/')
     notes = []
     for p in md_files:
         text = p.read_text(encoding='utf-8')
@@ -456,7 +381,6 @@ def main():
         sections = sections_of(body)
         m = re.match(r'(\d+)_', p.stem)
         num = int(m.group(1)) if m else 0
-        # 分组
         group = ''
         for gname, nums in GROUPS:
             if num in nums:
@@ -465,38 +389,23 @@ def main():
         if num == 0:
             group = '总图'
         title = title_of(p, body, md_text=text)
-        # 清掉 H1(已单独渲染为 .article__title)
         body_no_h1 = re.sub(r'<h1[^>]*>.+?</h1>', '', body, count=1, flags=re.S)
         notes.append({
-            'slug': slug_of(p),
-            'stem': p.stem,
-            'num': num,  # 0 = 总图, 1-16 = 正文
-            'group': group,
-            'title': title,
-            'text': text,
-            'sections': sections,
-            'body': body_no_h1,
-            'lead': lead_of(body),
+            'slug': slug_of(p), 'stem': p.stem, 'num': num, 'group': group,
+            'title': title, 'text': text, 'sections': sections,
+            'body': body_no_h1, 'lead': lead_of(body),
         })
 
-    # 排序:总图(00)在前,正文按 num 1..16
     notes_sorted = sorted(notes, key=lambda n: n['num'])
-    # prev/next 链按阅读序:overview -> 01..16
-    ordered = [n for n in notes_sorted]
-
     for i, n in enumerate(notes_sorted):
-        prev = ordered[i - 1] if i > 0 else None
-        nxt = ordered[i + 1] if i < len(ordered) - 1 else None
+        prev = notes_sorted[i - 1] if i > 0 else None
+        nxt = notes_sorted[i + 1] if i < len(notes_sorted) - 1 else None
         page = build_page(notes_sorted, n, prev, nxt)
-        out = SITE / n['slug']
-        out.write_text(page, encoding='utf-8')
+        (OUT / n['slug']).write_text(page, encoding='utf-8')
         print(f'  ✓ {n["slug"]:<28} {n["title"][:30]}')
-
-    # 首页
-    (SITE / 'index.html').write_text(build_landing(notes), encoding='utf-8')
-    print('  ✓ index.html')
-
-    print(f'\n完成: {SITE}/index.html')
+    (OUT / 'index.html').write_text(build_landing(notes), encoding='utf-8')
+    print(f'  ✓ index.html')
+    print(f'\n完成: {OUT}/index.html')
 
 
 if __name__ == '__main__':

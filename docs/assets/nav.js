@@ -20,13 +20,11 @@
   onScroll();
 
   /* ---- IntersectionObserver: 当前篇高亮 + 当前段高亮 ---- */
-  // 篇级:侧栏对应当前页的 link 标 is-current
   const currentHref = location.pathname.split('/').pop() || 'index.html';
   document.querySelectorAll('.toc__link').forEach(a => {
     const href = a.getAttribute('href') || '';
     if (href === currentHref || href.endsWith('/' + currentHref)) {
       a.classList.add('is-current');
-      // 展开该篇的八段子锚点
       const sub = a.parentElement?.querySelector('.toc__sub');
       if (sub) sub.style.display = '';
     }
@@ -54,7 +52,6 @@
           else visible.delete(eid);
         }
       });
-      // 选可见度最高的一段
       let best = null, bestRatio = 0;
       for (const [eid, r] of visible) {
         if (r > bestRatio) { bestRatio = r; best = eid; }
@@ -91,11 +88,9 @@
     sidebar?.classList.contains('is-open') ? closeDrawer() : openDrawer();
   });
   backdrop?.addEventListener('click', closeDrawer);
-  // 抽屉内点链接后自动关
   sidebar?.addEventListener('click', (e) => {
     if (e.target.closest('a')) closeDrawer();
   });
-  // ESC 关
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && sidebar?.classList.contains('is-open')) closeDrawer();
   });
