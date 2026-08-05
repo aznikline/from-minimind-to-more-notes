@@ -175,6 +175,12 @@ footer {
 .prose th, .prose td { border: 1px solid var(--border); padding: 0.42rem 0.7rem; text-align: left; vertical-align: top; }
 .prose th { font-weight: 400; color: var(--muted); background: var(--hover-tint); font-family: var(--sans); }
 .prose tbody tr:hover td { background: var(--hover-tint); }
+/* 表格可横滚,防窄屏撑破布局 */
+@media (max-width: 820px) {
+  .prose table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .prose thead, .prose tbody, .prose tr, .prose th, .prose td { display: table-row-group; }
+  .prose tr { display: table-row; } .prose th, .prose td { display: table-cell; }
+}
 
 /* ---------- Mermaid / markmap 卡片 ---------- */
 .prose .mermaid-wrap {

@@ -41,6 +41,14 @@ def _unescape_html(s: str) -> str:
 
 def _inline(s: str) -> str:
     s = _escape(s)
+    # 保护 LaTeX 数学片段($$...$$ 和 $...$):用占位符替换,避免 * ^ 等
+    # 被 markdown 加粗/斜体/代码规则误吃(如 \pi^* 的 * 被当 italic)。
+    placeholders = []
+    def _stash(m):
+        placeholders.append(m.group(0))
+        return f'\x00MATH{len(placeholders)-1}\x00'
+    s = re.sub(r'\$\$.+?\$\$', _stash, s, flags=re.S)  # display block inline-mixed
+    s = re.sub(r'(?<!\$)\$(?!\$).+?(?<!\$)\$(?!\$)', _stash, s)  # inline
     s = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', s)
     s = re.sub(r'(?<!\*)\*([^*\n]+?)\*(?!\*)', r'<em>\1</em>', s)
     s = re.sub(r'`([^`]+)`', r'<code>\1</code>', s)
@@ -52,6 +60,9 @@ def _inline(s: str) -> str:
             return f'<a href="{_escape(url)}" target="_blank" rel="noopener">{text}</a>'
         return m.group(0)
     s = re.sub(r'\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)', _link, s)
+    # 还原数学片段
+    for i, orig in enumerate(placeholders):
+        s = s.replace(f'\x00MATH{i}\x00', orig)
     return s
 
 
