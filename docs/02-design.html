@@ -93,41 +93,40 @@
 <div class="section-critique"><h2 id="sec-7">批判性批注</h2>
 <ul><li><strong>"最小 26M"与配置表不完全自洽</strong>：<code>hidden_size=512</code>、<code>num_hidden_layers=8</code>、<code>intermediate_size</code> 默认自动算（通常 4 倍即 ~2048）的稠密配置，粗算参数量已远超 26M（仅 embedding+layers 即数十 M），26M 更可能是"最小可用配置"或包含权重绑定/词表压缩后的净参数，文中未给出明确核算口径，需读者警惕口径差异。</li><li><strong>YaRN "训练 2k、推理 32k" 的代价被淡化</strong>：外推能跑≠外推无损，长文本泛化质量、幻觉率、远距离注意力退化均未讨论，应作为"可用但有损"理解，而非免费午餐。</li><li><strong>MoE 默认关闭（<code>use_moe=False</code>）</strong>：文中大篇幅强调混合专家先进性，但默认仍是稠密模型；MoE 路径的真实收益需在开启后对比，稠密基线下的"参数利用率"论断需谨慎。</li><li><strong><code>n_routed_experts=4</code>、<code>num_experts_per_tok=2</code></strong> 规模过小，无法充分体现 MoE 的稀疏激活红利，更接近教学演示而非工程实践，迁移到真实大模型时不能直接照搬比例。</li><li><strong>Weight Tying 在极小词表（6400）下的收益</strong>：词表本已极小，权重绑定的"减少冗余"边际收益相对有限，文中"每一分参数预算都用在刀刃上"的说法略有夸大。</li><li><strong>架构先进性 vs 实际效果</strong>：作者强调"五脏俱全、对齐前沿"，但未提供与同体量基线（如关闭 GQA/YaRN/MoE 的 ablation）的对比数据，先进性是否在小规模下真正转化为效果提升，缺乏证据闭环。</li><li><strong>"理解这个 Block 就理解 Llama 3/Qwen 2/DeepSeek"</strong>：作为学习类比可成立，但巨型模型在工程化（张量并行、流水并行、上下文并行、KV 量化、蒸馏）上的复杂度远超 MiniMind，类比有简化失真风险。</li><li><strong>配置表 <code>intermediate_size=None</code> 的自动计算</strong>：文中用"通常"措辞，未点明具体计算规则（4× hidden_size 是约定俗成但非强制），对初学者可能造成"黑盒"误解。</li></ul>
 </div><h2 id="sec-8">篇内小思维导图</h2>
-<div class="mermaid-wrap"><div class="mermaid">mindmap
-  root((MiniMind 设计目录))
-    全局视野
-      Decoder-Only Transformer
-      Causal Mask 单向数据流
-      对齐 Llama3/DeepSeek-V2
-    MiniMindConfig 五切片
-      基础架构
-        vocab_size=6400
-        hidden_size=512
-        num_hidden_layers=8
-        hidden_act=silu
-      注意力 &amp; GQA
-        Q头=8 / KV头=2
-        flash_attn=True
-      位置 &amp; 长上下文
-        max_pos=32768
-        rope_theta=1e6
-        YaRN 外推(factor=16)
-      MoE
-        use_moe 总开关
-        shared=1 / routed=4 / Top-K=2
-        Aux Loss 负载均衡
-      特殊标记 &amp; 正则
-        bos=1 / eos=2
-        dropout=0.0
-    Transformer Block 技巧
-      RoPE &amp; YaRN 动态调频
-      Pre-Norm RMSNorm
-      GQA + Flash Attention
-      SwiGLU / Hybrid MoE
-      Weight Tying + 词表压缩
-    定位
-      主流大模型技术栈缩影
-      学习一个 Block 窥见 Llama3/Qwen2/DeepSeek</div></div>
+<div class="markmap"># MiniMind 设计目录
+## 全局视野
+### Decoder-Only Transformer
+### Causal Mask 单向数据流
+### 对齐 Llama3/DeepSeek-V2
+## MiniMindConfig 五切片
+### 基础架构
+- vocab_size=6400
+- hidden_size=512
+- num_hidden_layers=8
+- hidden_act=silu
+### 注意力 &amp; GQA
+- Q头=8 / KV头=2
+- flash_attn=True
+### 位置 &amp; 长上下文
+- max_pos=32768
+- rope_theta=1e6
+- YaRN 外推(factor=16)
+### MoE
+- use_moe 总开关
+- shared=1 / routed=4 / Top-K=2
+- Aux Loss 负载均衡
+### 特殊标记 &amp; 正则
+- bos=1 / eos=2
+- dropout=0.0
+## Transformer Block 技巧
+### RoPE &amp; YaRN 动态调频
+### Pre-Norm RMSNorm
+### GQA + Flash Attention
+### SwiGLU / Hybrid MoE
+### Weight Tying + 词表压缩
+## 定位
+### 主流大模型技术栈缩影
+### 学习一个 Block 窥见 Llama3/Qwen2/DeepSeek</div>
 <nav class="pager"><div class="pager__prev"><a href="01-tokenizer.html"><span class="pager__label">← 上一篇</span>基石:Tokenizer 你所需要知道的一切</a></div><div class="pager__next"><a href="03-embedding-pos.html"><span class="pager__label">下一篇 →</span>基石:Embedding 与位置编码</a></div></nav>
 </article>
 </main>
@@ -137,6 +136,7 @@
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.18"></script>
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
   mermaid.initialize({ startOnLoad: true, theme: 'neutral', fontFamily: 'Benne, Georgia, serif' });

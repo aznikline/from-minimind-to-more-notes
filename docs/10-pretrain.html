@@ -165,60 +165,59 @@ labels[input_ids == pad_id] = -100                          # pad 不算 loss</c
 <div class="section-critique"><h2 id="sec-44">批判性批注</h2>
 <ul><li><strong>无 warmup 的风险</strong>：MiniMind 的 <code>get_lr</code> 从峰值起步，对小模型 + AdamW 通常能稳住，但放大到更大模型（如 7B+）初期容易震荡。生产场景建议加 warmup（如前 2% step 线性升峰），不应照搬此简化版。</li><li><strong>独立 Padding 而非 Packing 的浪费</strong>：每条样本单独 pad，短文本场景下大量位置是 pad（-100），计算/显存浪费明显。生产级预训练一般用 sample packing + attention mask 隔离样本，能显著提升吞吐。</li><li><strong>无滑动窗口</strong>：长文档被截断到 max_length，超出部分直接丢弃，长程依赖学不到。对短 QA 数据影响小，但对「百科+书籍」类 pretrain 数据损失大。</li><li><strong>weight_decay 未显式调</strong>：代码用 <code>AdamW</code> 默认值，对大模型预训练通常希望显式设较小的 weight_decay（如 0.1）以正则化，默认值偏弱。</li><li><strong><code>scaler</code> 在 bf16 下仍启用</strong>：注释自承「bf16 通常不需要」，但代码为兼容统一保留 <code>GradScaler</code>，对 bf16 是冗余开销，可按 dtype 条件关闭。</li><li><strong>每步手动写 lr</strong>：灵活性高但失去了 PyTorch <code>LambdaLR</code>/<code>SequentialLR</code> 的可组合性，叠加 warmup/multistep 时维护成本高。</li><li><strong>断点续训的 step 换算</strong>：<code>step = step * saved_ws // current_ws</code> 是按「数据消耗量」对齐的粗略换算，假设了每卡 batch 一致；若 batch_size 也变了，换算会失真，应同时考虑 batch_size 因子。</li><li><strong>「Instruction Pre-training」术语模糊</strong>：作者把 QA 数据放进 pretrain 称为 Instruction Pre-training，但严格说 Instruction Pre-training 通常指用模型生成指令数据混入 base pretrain，这里更接近「Continued Pre-training on chat data」，术语可更精确。</li><li><strong>保存频率</strong>：<code>save_interval</code> 由 args 控制，若设太小在长训练中会产生大量 IO；且每次保存都 eval+half+cpu+torch.save+lm_checkpoint，开销不小，生产中可考虑异步保存。</li></ul>
 </div><h2 id="sec-45">篇内小思维导图</h2>
-<div class="mermaid-wrap"><div class="mermaid">mindmap
-  root((Minimind Pretrain))
-    数据层 lm_dataset.py
-      PretrainDataset
-        BOS+text+EOS
-        定长 pad
-        labels=ids, pad→-100
-      SFTDataset
-        仅 assistant 段算 loss
-        user 段 label=-100
-      DPODataset
-        chosen/rejected 成对
-    基础设施 trainer_utils.py
-      lm_checkpoint
-        DDP 解包 .module
-        compile 解包 _orig_mod
-        half→cpu
-        tmp→os.replace 原子保存
-        resume: model+opt+scaler+epoch+step+ws
-        GPU数变化 step 换算
-      SkipBatchSampler
-        跳过前 skip_batches
-      get_model_params
-        dense: total
-        MoE: total-Aactive
-      get_lr
-        cosine, 0.1~1.0
-        无 warmup
-    训练引擎 train_pretrain.py
-      初始化
-        init_distributed_mode
-        seed=42+rank
-        bfloat16 优先
-        torch.compile
-      train_epoch
-        每 step 更新 lr
-        loss=CE+aux
-        loss/=accum
-        scaler.scale.backward
-        unscale→clip→step→update
-        zero_grad set_to_none
-        定期 save rank0
-        del 变量
-      断点续训
-        SkipBatchSampler
-        world_size 换算
-      DDP
-        DistributedSampler
-        ignore freqs_cos/sin
-    关键设计取舍
-      用指令数据做 pretrain
-      无 warmup 简化
-      独立 padding 非 packing
-      显式 aux_loss 防专家坍缩</div></div>
+<div class="markmap"># Minimind Pretrain
+## 数据层 lm_dataset.py
+### PretrainDataset
+- BOS+text+EOS
+- 定长 pad
+- labels=ids, pad→-100
+### SFTDataset
+- 仅 assistant 段算 loss
+- user 段 label=-100
+### DPODataset
+- chosen/rejected 成对
+## 基础设施 trainer_utils.py
+### lm_checkpoint
+- DDP 解包 .module
+- compile 解包 _orig_mod
+- half→cpu
+- tmp→os.replace 原子保存
+- resume: model+opt+scaler+epoch+step+ws
+- GPU数变化 step 换算
+### SkipBatchSampler
+- 跳过前 skip_batches
+### get_model_params
+- dense: total
+- MoE: total-Aactive
+### get_lr
+- cosine, 0.1~1.0
+- 无 warmup
+## 训练引擎 train_pretrain.py
+### 初始化
+- init_distributed_mode
+- seed=42+rank
+- bfloat16 优先
+- torch.compile
+### train_epoch
+- 每 step 更新 lr
+- loss=CE+aux
+- loss/=accum
+- scaler.scale.backward
+- unscale→clip→step→update
+- zero_grad set_to_none
+- 定期 save rank0
+- del 变量
+### 断点续训
+- SkipBatchSampler
+- world_size 换算
+### DDP
+- DistributedSampler
+- ignore freqs_cos/sin
+## 关键设计取舍
+### 用指令数据做 pretrain
+### 无 warmup 简化
+### 独立 padding 非 packing
+### 显式 aux_loss 防专家坍缩</div>
 <nav class="pager"><div class="pager__prev"><a href="09-rl-overview.html"><span class="pager__label">← 上一篇</span>算法:大模型强化学习算法概览</a></div><div class="pager__next"><a href="11-sft.html"><span class="pager__label">下一篇 →</span>算法:Minimind 的 SFT</a></div></nav>
 </article>
 </main>
@@ -228,6 +227,7 @@ labels[input_ids == pad_id] = -100                          # pad 不算 loss</c
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.18"></script>
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
   mermaid.initialize({ startOnLoad: true, theme: 'neutral', fontFamily: 'Benne, Georgia, serif' });

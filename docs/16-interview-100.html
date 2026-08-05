@@ -77,117 +77,116 @@
 <p><strong>C. 可能误导的点</strong></p>
 <ul><li><strong>作者外置答案到"minimind 详解 + 问 AI"</strong>：2026 年用通用 AI 问答填八股风险是 AI 会给出<strong>过时答案</strong>（尤其对齐、scaling law、评测榜），读者需自带"时间戳"意识交叉验证。</li><li><strong>"加分项"清单</strong>（DPO/MoE/Flash Attn v2/vLLM）在 2026 已属<strong>标配</strong>而非加分项，继续按"加分"准备会低估预期。</li></ul>
 </div><h2 id="sec-8">簇内小思维导图</h2>
-<div class="mermaid-wrap"><div class="mermaid">mindmap
-  root((大模型八股100问))
-    一 Transformer架构
-      Self-Attention
-        公式
-        缩放因子1/√dk
-        Softmax必要性
-      Multi-Head &amp; 变体
-        MHA
-        MQA
-        GQA
-      结构细节
-        Pre/Post-Norm
-        FFN &amp; SwiGLU
-        Residual
-        Bias去留
-      架构选型
-        Encoder-only BERT
-        Decoder-only GPT
-        Enc-Dec T5
-      MoE
-        路由原理
-        负载均衡loss
-      稀疏注意力
-      KV Cache
-    二 位置编码 &amp; Tokenizer
-      绝对 vs 可学习
-      RoPE
-      ALiBi 外推
-      YaRN 长上下文
-      BPE/WordPiece/SentencePiece/Unigram
-      Byte-level BPE
-      OOV
-      词表大小权衡
-    三 预训练
-      Scaling Law Kaplan/Chinchilla
-      去重 MinHash/SimHash
-      数据质量 Textbooks
-      Loss Spike
-      混合精度 FP16/BF16
-      分布式
-        ZeRO 1/2/3
-        TP/PP
-        3D并行
-      CLM/MLM/PLM/UL2
-      课程学习
-      长上下文训练
-      Batch Size
-      梯度累积
-      Flash Attention
-    四 微调 SFT &amp; PEFT
-      SFT vs 预训练
-      LoRA 数学原理
-        Rank r
-        Alpha α
-      QLoRA
-        4-bit NF
-        Double Quant
-        Paged Optim
-      Prompt/Prefix/P-Tuning
-      AdaLoRA
-      指令质量 vs 多样性
-      NEFTune
-      多轮对话 Loss Masking
-      灾难性遗忘
-      Chat Vector
-      全量 vs LoRA 差距
-      Adapter 多任务
-      Epoch 过拟合
-    五 对齐
-      RLHF 三阶段
-      Reward Model 损失
-      KL散度惩罚
-      PPO
-      DPO
-        推导消RM
-        Reference Model
-      Rejection Sampling
-      IPO / KTO
-      Alignment Tax
-      偏好数据 A vs B
-      Constitutional AI
-      Reward Hacking
-      RLAIF 趋势
-    六 推理优化与量化
-      解码策略 Greedy/Beam/Topk/Topp
-      Temperature
-      Speculative Decoding
-      vLLM PagedAttention
-      量化 PTQ/QAT
-      GPTQ vs AWQ
-      4-bit 不掉点
-      KV Cache Quantization
-      Continuous Batching
-      TTFT / TPOT
-      7B FP16 显存估算
-      TensorRT-LLM
-      StreamingLLM
-    七 RAG/Agent/评测
-      RAG 流程
-      Chunking
-      Lost in the Middle
-      GraphRAG
-      Vector DB / HNSW
-      CoT
-      ReAct
-      评测榜 MMLU/GSM8K/HumanEval/C-Eval
-      Needle in Haystack
-      幻觉根因
-      Function Calling
-      System 2 慢思考</div></div>
+<div class="markmap"># 大模型八股100问
+## 一 Transformer架构
+### Self-Attention
+- 公式
+- 缩放因子1/√dk
+- Softmax必要性
+### Multi-Head &amp; 变体
+- MHA
+- MQA
+- GQA
+### 结构细节
+- Pre/Post-Norm
+- FFN &amp; SwiGLU
+- Residual
+- Bias去留
+### 架构选型
+- Encoder-only BERT
+- Decoder-only GPT
+- Enc-Dec T5
+### MoE
+- 路由原理
+- 负载均衡loss
+### 稀疏注意力
+### KV Cache
+## 二 位置编码 &amp; Tokenizer
+### 绝对 vs 可学习
+### RoPE
+### ALiBi 外推
+### YaRN 长上下文
+### BPE/WordPiece/SentencePiece/Unigram
+### Byte-level BPE
+### OOV
+### 词表大小权衡
+## 三 预训练
+### Scaling Law Kaplan/Chinchilla
+### 去重 MinHash/SimHash
+### 数据质量 Textbooks
+### Loss Spike
+### 混合精度 FP16/BF16
+### 分布式
+- ZeRO 1/2/3
+- TP/PP
+- 3D并行
+### CLM/MLM/PLM/UL2
+### 课程学习
+### 长上下文训练
+### Batch Size
+### 梯度累积
+### Flash Attention
+## 四 微调 SFT &amp; PEFT
+### SFT vs 预训练
+### LoRA 数学原理
+- Rank r
+- Alpha α
+### QLoRA
+- 4-bit NF
+- Double Quant
+- Paged Optim
+### Prompt/Prefix/P-Tuning
+### AdaLoRA
+### 指令质量 vs 多样性
+### NEFTune
+### 多轮对话 Loss Masking
+### 灾难性遗忘
+### Chat Vector
+### 全量 vs LoRA 差距
+### Adapter 多任务
+### Epoch 过拟合
+## 五 对齐
+### RLHF 三阶段
+### Reward Model 损失
+### KL散度惩罚
+### PPO
+### DPO
+- 推导消RM
+- Reference Model
+### Rejection Sampling
+### IPO / KTO
+### Alignment Tax
+### 偏好数据 A vs B
+### Constitutional AI
+### Reward Hacking
+### RLAIF 趋势
+## 六 推理优化与量化
+### 解码策略 Greedy/Beam/Topk/Topp
+### Temperature
+### Speculative Decoding
+### vLLM PagedAttention
+### 量化 PTQ/QAT
+### GPTQ vs AWQ
+### 4-bit 不掉点
+### KV Cache Quantization
+### Continuous Batching
+### TTFT / TPOT
+### 7B FP16 显存估算
+### TensorRT-LLM
+### StreamingLLM
+## 七 RAG/Agent/评测
+### RAG 流程
+### Chunking
+### Lost in the Middle
+### GraphRAG
+### Vector DB / HNSW
+### CoT
+### ReAct
+### 评测榜 MMLU/GSM8K/HumanEval/C-Eval
+### Needle in Haystack
+### 幻觉根因
+### Function Calling
+### System 2 慢思考</div>
 <nav class="pager"><div class="pager__prev"><a href="15-spo.html"><span class="pager__label">← 上一篇</span>算法:Minimind 的 SPO</a></div><div></div></nav>
 </article>
 </main>
@@ -197,6 +196,7 @@
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.18"></script>
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
   mermaid.initialize({ startOnLoad: true, theme: 'neutral', fontFamily: 'Benne, Georgia, serif' });

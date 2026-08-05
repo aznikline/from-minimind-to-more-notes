@@ -82,31 +82,31 @@
 <ul><li><strong>长度归一化 vs 原论文</strong>:原 DPO 用整句 log 概率(联合概率),Minimind 改成每 token 平均。这改变了损失的概率语义(不再是严格的 BT 推导),更像一个工程化的 surrogate loss。理论上更接近 RPO/IPO 系列的思路,作者未点出这一偏离。面试时若被追问"DPO 原式怎么写",要记得原式是 sum 不是 mean。</li><li><strong>隐式奖励的数值稳定性</strong>:<code>log_softmax</code> + <code>gather</code> 是标准做法,但 bfloat16 下低概率 token 的 log 可能精度损失。代码用 <code>autocast</code> 包前向但 loss 计算未显式上转 float32,大规模训练需注意。</li><li><strong>参考模型显存开销</strong>:DPO 必须同时驻留两份模型权重,policy + ref。Minimind 模型小无压力,但大模型场景这是 DPO 的主要显存痛点(LoraDPO、ref-free DPO 等变体正是为此而生),作者未提。</li><li><strong>无 KL 估计、无 reward 监控</strong>:训练日志只打印 dpo_loss/aux_loss/lr,没有打印 chosen/rejected 各自的 log 概率、隐式 reward、KL 估计等。实战中这些是判断"是否在学偏好 vs 是否在崩"的关键,缺失会让调参凭感觉。</li><li><strong>batch 拼接切分的脆弱性</strong>:<code>batch_size // 2</code> 切分强依赖 <code>cat([chosen, rejected])</code> 顺序,没有断言保护。若有人改动 DataLoader 顺序会静默出错,建议加 <code>assert</code> 或用显式的 chunk 标记。</li><li><strong>EOS 纳入 mask 的取舍</strong>:让模型学会生成 EOS 是好事,但若 rejected 的 EOS 也被算进 loss,等于"教模型 rejected 的结束方式",信号可能互相矛盾。作者未讨论这一边界。</li><li><strong>单 epoch 默认</strong>:<code>--epochs</code> 默认 1,DPO 通常确实 1-2 epoch 即可,但缺少早停/验证集监控,容易过拟合偏好数据。</li></ul>
 </div><h2 id="sec-12">篇内小思维导图</h2>
 <div class="mermaid-wrap"><div class="mermaid">flowchart TD
-    A["DPO 动机 跳过 RMPPO"] --&gt; B["核心关系 r β log ππref"]
-    B --&gt; C["代入 BradleyTerry 消去奖励"]
-    C --&gt; D["损失 -log σ β Δπ - Δref"]
+    A["DPO 动机 跳过 RMPPO"] --> B["核心关系 r β log ππref"]
+    B --> C["代入 BradleyTerry 消去奖励"]
+    C --> D["损失 -log σ β Δπ - Δref"]
 
-    E["dpo.jsonl 偏序对"] --&gt; F["chosen 与 rejected 同 prompt"]
-    F --&gt; G["apply_chat_template 加 tokenize"]
-    G --&gt; H["generate_loss_mask 只 assistant 段含 EOS"]
-    H --&gt; I["Shift Trick x ids-1 y ids1"]
-    I --&gt; J["6 张量 xy/mask 乘 chosen/rejected"]
+    E["dpo.jsonl 偏序对"] --> F["chosen 与 rejected 同 prompt"]
+    F --> G["apply_chat_template 加 tokenize"]
+    G --> H["generate_loss_mask 只 assistant 段含 EOS"]
+    H --> I["Shift Trick x ids-1 y ids1"]
+    I --> J["6 张量 xy/mask 乘 chosen/rejected"]
 
-    J --&gt; K["train_epoch"]
-    K --&gt; L["cat 拼接 2B batch"]
-    L --&gt; M["ref_model no_grad 前向 ref_log_probs"]
-    L --&gt; N["policy model 前向 policy_log_probs"]
-    M --&gt; O["dpo_loss"]
-    N --&gt; O
-    O --&gt; P["sum/seq_len 长度归一化"]
-    P --&gt; Q["切分 chosen/rejected batch2"]
-    Q --&gt; R["pi_logratios - ref_logratios"]
-    R --&gt; S["-logsigmoid beta logits"]
-    S --&gt; T["梯度更新 policy ref frozen"]
+    J --> K["train_epoch"]
+    K --> L["cat 拼接 2B batch"]
+    L --> M["ref_model no_grad 前向 ref_log_probs"]
+    L --> N["policy model 前向 policy_log_probs"]
+    M --> O["dpo_loss"]
+    N --> O
+    O --> P["sum/seq_len 长度归一化"]
+    P --> Q["切分 chosen/rejected batch2"]
+    Q --> R["pi_logratios - ref_logratios"]
+    R --> S["-logsigmoid beta logits"]
+    S --> T["梯度更新 policy ref frozen"]
 
-    U["超参"] --&gt; V["beta=0.1 控制 KL 偏离"]
-    U --&gt; W["lr=4e-8 比 SFT 小一档"]
-    U --&gt; X["epochs=1 偏好微调"]</div></div>
+    U["超参"] --> V["beta=0.1 控制 KL 偏离"]
+    U --> W["lr=4e-8 比 SFT 小一档"]
+    U --> X["epochs=1 偏好微调"]</div></div>
 <nav class="pager"><div class="pager__prev"><a href="11-sft.html"><span class="pager__label">← 上一篇</span>算法:Minimind 的 SFT</a></div><div class="pager__next"><a href="13-ppo.html"><span class="pager__label">下一篇 →</span>算法:Minimind 的 PPO</a></div></nav>
 </article>
 </main>
@@ -116,6 +116,7 @@
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.18"></script>
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
   mermaid.initialize({ startOnLoad: true, theme: 'neutral', fontFamily: 'Benne, Georgia, serif' });

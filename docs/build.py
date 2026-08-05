@@ -35,6 +35,10 @@ def _escape(s: str) -> str:
     return html.escape(s, quote=False)
 
 
+def _unescape_html(s: str) -> str:
+    return html.unescape(s)
+
+
 def _inline(s: str) -> str:
     s = _escape(s)
     s = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', s)
@@ -251,11 +255,50 @@ def build_header(notes: list[dict]) -> str:
     return chr(10).join(parts)
 
 
+def _mermaid_mindmap_to_markmap(src: str) -> str:
+    """Convert mermaid `mindmap` source to markmap markdown.
+    root(depth1)->#, d2->##, d3->###, d>=4->nested bullets."""
+    entries = []
+    for line in src.splitlines():
+        s = line.strip()
+        if s == 'mindmap' or not s:
+            continue
+        lead = len(line) - len(line.lstrip(' '))
+        depth = lead // 2
+        entries.append((depth, s))
+    if not entries:
+        return ''
+    min_d = min(d for d, _ in entries)
+    entries = [(d - min_d + 1, t) for d, t in entries]
+    out = []
+    for d, text in entries:
+        if d == 1:
+            m = re.match(r'^root[\(\[\{]+([^\)\]\}]+)[\)\]\}]+$', text)
+            rt = m.group(1).strip() if m else re.sub(r'^root\s*', '', text)
+            out.append(f'# {rt.replace("<br/>"," ").replace("<br>"," ")}')
+        elif d == 2:
+            out.append(f'## {text}')
+        elif d == 3:
+            out.append(f'### {text}')
+        else:
+            out.append(f'{"  " * (d - 4)}- {text}')
+    return '\n'.join(out)
+
+
 def mermaid_wrap(body_html: str) -> str:
+    """Wrap mermaid blocks. mindmap -> markmap <div>; flowchart/graph -> mermaid <div>."""
+    def repl(m: re.Match) -> str:
+        inner = _unescape_html(m.group(2))
+        is_mindmap = inner.strip().splitlines()[0].strip() == 'mindmap' if inner.strip() else False
+        if is_mindmap:
+            mm_md = _mermaid_mindmap_to_markmap(inner)
+            # markmap-autoloader picks up <div class="markmap"> with markdown text inside
+            return f'<div class="markmap">{_escape(mm_md)}</div>'
+        return f'<div class="mermaid-wrap"><div class="mermaid">{inner}</div></div>'
+
     return re.sub(
-        r'<pre><code class="language-mermaid">(.*?)</code></pre>',
-        r'<div class="mermaid-wrap"><div class="mermaid">\1</div></div>',
-        body_html, flags=re.S
+        r'<pre><code (class="language-mermaid")>(.*?)</code></pre>',
+        repl, body_html, flags=re.S
     )
 
 
@@ -293,6 +336,7 @@ PAGE_TPL = """<!DOCTYPE html>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.18"></script>
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
   mermaid.initialize({{ startOnLoad: true, theme: 'neutral', fontFamily: 'Benne, Georgia, serif' }});

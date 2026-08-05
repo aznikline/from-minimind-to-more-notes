@@ -125,50 +125,49 @@ for part in splits:
 <div class="section-critique"><h2 id="sec-15">批判性批注</h2>
 <ul><li><strong>事实性</strong>:整体准确。一处需补正:文中称 GPT-4 cl100k_base 词表"约 100,277"并对 GPT-2"50,257"作"翻倍"描述,数值大致正确,但"翻倍"为约数,实际 50257→100277 接近但不严格 2 倍;不影响结论。</li><li><strong>覆盖面</strong>:对 BPE 讲解透彻,WordPiece/Unigram 偏概念性,缺 Unigram 的 Viterbi 实现细节与 EM 收敛性讨论;对 Tiktoken/HF/SentencePiece 三库对比偏宏观,未涉及实际 API 差异示例。</li><li><strong>时效性</strong>:文中主要覆盖到 GPT-4/Llama 3,对未来方向(Token-free、多模态)为展望性陈述;截止 2026 年,字节级模型与多模态 Tokenizer 已有实质进展,此节略陈旧但不构成错误。</li><li><strong>代码一致性</strong>:<code>BPE.py</code> 用字符级 <code>list(text)</code> 做教学简化,与文中强调的"真实 BPE 用字节级"存在教学 vs 生产差异,文中已显式标注,非缺陷。</li><li><strong>小瑕疵</strong>:文中部分正则片段在 Markdown 渲染下可能丢失反斜杠(如 <code>?p{L}+</code> 实为 <code>\p{L}+</code> 的转义丢失),阅读时需脑补;不影响理解。</li><li>总体未发现明显事实性错误。</li></ul>
 </div><h2 id="sec-16">篇内小思维导图</h2>
-<div class="mermaid-wrap"><div class="mermaid">mindmap
-  root((Tokenizer))
-    演变
-      字符级
-        优点: 词表小 无OOV
-        缺点: 序列长 语义稀疏 O(N^2)
-      词级别
-        优点: 语义完整
-        缺点: 词表爆炸 OOV
-      子词
-        哲学: 常用词完整 罕见词拆分
-    三巨头
-      BPE
-        自底向上 频率驱动
-        GPT Llama
-      WordPiece
-        自底向上 PMI/似然度
-        BERT
-      Unigram
-        自顶向下 EM+Viterbi 剪枝
-        T5 ALBERT 子词正则化
-    BPE 实现
-      get_stats zip相邻对
-      merge 双指针 跳2步
-      train 产物=merges
-      encode 按rank优先级
-      decode errors=replace
-    GPT 演进
-      正则预分词
-        GPT-2 缩写/空格/标点
-        GPT-4 大小写不敏感 数字2位 空格合并
-      bytes_to_unicode 空格→Ġ 全射
-      词表 50k→100k→128k
-    工程要点
-      特殊Token 正则抠出
-      Glitch Tokens 未训练Embedding
-      算术/缩进 盲区
-    生态库
-      Tiktoken Rust 极速
-      SentencePiece 无损 空格当字符
-      HuggingFace 大一统
-    未来
-      Token-free 字节级 Transformer
-      多模态 万物皆Token</div></div>
+<div class="markmap"># Tokenizer
+## 演变
+### 字符级
+- 优点: 词表小 无OOV
+- 缺点: 序列长 语义稀疏 O(N^2)
+### 词级别
+- 优点: 语义完整
+- 缺点: 词表爆炸 OOV
+### 子词
+- 哲学: 常用词完整 罕见词拆分
+## 三巨头
+### BPE
+- 自底向上 频率驱动
+- GPT Llama
+### WordPiece
+- 自底向上 PMI/似然度
+- BERT
+### Unigram
+- 自顶向下 EM+Viterbi 剪枝
+- T5 ALBERT 子词正则化
+## BPE 实现
+### get_stats zip相邻对
+### merge 双指针 跳2步
+### train 产物=merges
+### encode 按rank优先级
+### decode errors=replace
+## GPT 演进
+### 正则预分词
+- GPT-2 缩写/空格/标点
+- GPT-4 大小写不敏感 数字2位 空格合并
+### bytes_to_unicode 空格→Ġ 全射
+### 词表 50k→100k→128k
+## 工程要点
+### 特殊Token 正则抠出
+### Glitch Tokens 未训练Embedding
+### 算术/缩进 盲区
+## 生态库
+### Tiktoken Rust 极速
+### SentencePiece 无损 空格当字符
+### HuggingFace 大一统
+## 未来
+### Token-free 字节级 Transformer
+### 多模态 万物皆Token</div>
 <nav class="pager"><div class="pager__prev"><a href="overview.html"><span class="pager__label">← 上一篇</span>From Minimind to More — 全篇结构化精读总图</a></div><div class="pager__next"><a href="02-design.html"><span class="pager__label">下一篇 →</span>基石:Minimind 的设计目录</a></div></nav>
 </article>
 </main>
@@ -178,6 +177,7 @@ for part in splits:
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.18"></script>
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
   mermaid.initialize({ startOnLoad: true, theme: 'neutral', fontFamily: 'Benne, Georgia, serif' });

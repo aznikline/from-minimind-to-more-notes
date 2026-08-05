@@ -176,13 +176,22 @@ footer {
 .prose th { font-weight: 400; color: var(--muted); background: var(--hover-tint); font-family: var(--sans); }
 .prose tbody tr:hover td { background: var(--hover-tint); }
 
-/* ---------- Mermaid 卡片 ---------- */
+/* ---------- Mermaid / markmap 卡片 ---------- */
 .prose .mermaid-wrap {
   margin: 1.5rem 0; padding: 1.3rem; background: var(--code-bg);
   border: 1px solid var(--code-border); border-radius: var(--radius);
   display: flex; justify-content: center; overflow-x: auto;
 }
 .prose .mermaid { width: 100%; }
+.prose .markmap {
+  margin: 1.5rem 0; height: 540px; padding: 0.6rem;
+  background: var(--code-bg); border: 1px solid var(--code-border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.prose .markmap svg { width: 100%; height: 100%; display: block; }
+.prose .markmap .markmap-node text { fill: var(--fg); font-size: 13px; font-family: var(--sans); }
+.prose .markmap .markmap-link { fill: none; stroke-width: 1.4; }
+@media (max-width: 760px) { .prose .markmap { height: 400px; } }
 
 /* ---------- LaTeX ---------- */
 .prose .katex-display { margin: 1.2rem 0; overflow-x: auto; overflow-y: hidden; padding: 0.3rem 0; }

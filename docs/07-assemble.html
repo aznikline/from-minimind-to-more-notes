@@ -69,25 +69,25 @@
 <ul><li>本章代码注释详尽但<strong>未展示 MiniMindBlock 内部</strong>与 MoEGate 细节(留到前文或后续),单读此章难以独立复现 Block 与 Gate;笔记层面需补"Block = norm+attn+残+norm+mlp+残"的接口假设。</li><li><strong>权重共享的代价未讨论</strong>:对大词表(64k+)和 hidden 较小时,tying 会限制 lm_head 表达力,现代大模型(如 LLaMA-2/3)反而 Untied;作者归为"Gemma 式轻量化",但对"何时该 tying"缺少判据。</li><li><strong>YaRN "无需训练外推"偏乐观</strong>:实际常仍需少量长文本微调或 at least 验证 perplexity;文档表述偏 marketing。</li><li><strong>GQA "全系支持"表述</strong>:小模型 Q 头本就不多,GQA 收益边际化,且 <code>repeat_kv</code> 复制后计算量未必下降,主要是省 KV Cache 存储而非算力——文中未区分"显存"与"算力"。</li><li><strong>MoE 选 DeepSeek 风格</strong>合理,但 <code>n_shared_experts</code>、Top-K、aux_loss 系数 α 的取值与稳定性经验本章未给,面试追问会露怯。</li><li><strong>HF Cache 降级</strong>:<code>hasattr(past_key_values,'layers')</code> 直接清空缓存,是"防止报错"的兜底而非真正兼容,生产环境可能默默退化为无 Cache 推理,需告警而非静默。</li><li><strong>代码中 <code>self.config = config or MiniMindConfig()</code> 在 <code>super().__init__</code> 之前赋值</strong>,依赖父类构造是否使用 self.config,属脆弱写法,建议先 super 再设。</li></ul>
 </div><h2 id="sec-9">章内小思维导图</h2>
 <div class="mermaid-wrap"><div class="mermaid">graph TD
-  A[MiniMindForCausalLM&lt;br/&gt;顶层封装] --&gt; B[MiniMindModel 骨干]
-  A --&gt; C[lm_head Linear H→V bias=False]
-  A -.权重共享.-&gt; C
-  B --&gt; D[embed_tokens V→H]
-  B --&gt; E[layers: L × MiniMindBlock]
-  B --&gt; F[norm 最终 RMSNorm]
-  B --&gt; G[RoPE buffer&lt;br/&gt;freqs_cos/sin persistent=False]
-  E --&gt; H[Block Pre-Norm 双残差]
-  H --&gt; H1[RMSNorm]
-  H --&gt; H2[Attention: GQA+RoPE/YaRN+Flash]
-  H --&gt; H3[+残差]
-  H --&gt; H4[RMSNorm]
-  H --&gt; H5{Dense 或 MoE?}
-  H5 --&gt;|Dense| H6[FeedForward SwiGLU]
-  H5 --&gt;|Sparse| H7[MOEFeedForward&lt;br/&gt;Shared + Routed + MoEGate + aux_loss]
-  H --&gt; H8[+残差]
-  A --&gt; I[训练: Shift + CrossEntropy ignore=-100]
-  A --&gt; J[推理: logits_to_keep=1 切片]
-  A --&gt; K[总 loss = CE + α·Σ aux_loss]</div></div>
+  A[MiniMindForCausalLM<br/>顶层封装] --> B[MiniMindModel 骨干]
+  A --> C[lm_head Linear H→V bias=False]
+  A -.权重共享.-> C
+  B --> D[embed_tokens V→H]
+  B --> E[layers: L × MiniMindBlock]
+  B --> F[norm 最终 RMSNorm]
+  B --> G[RoPE buffer<br/>freqs_cos/sin persistent=False]
+  E --> H[Block Pre-Norm 双残差]
+  H --> H1[RMSNorm]
+  H --> H2[Attention: GQA+RoPE/YaRN+Flash]
+  H --> H3[+残差]
+  H --> H4[RMSNorm]
+  H --> H5{Dense 或 MoE?}
+  H5 -->|Dense| H6[FeedForward SwiGLU]
+  H5 -->|Sparse| H7[MOEFeedForward<br/>Shared + Routed + MoEGate + aux_loss]
+  H --> H8[+残差]
+  A --> I[训练: Shift + CrossEntropy ignore=-100]
+  A --> J[推理: logits_to_keep=1 切片]
+  A --> K[总 loss = CE + α·Σ aux_loss]</div></div>
 <nav class="pager"><div class="pager__prev"><a href="06-moe.html"><span class="pager__label">← 上一篇</span>架构:混合专家模型(MoE)</a></div><div class="pager__next"><a href="08-infer-train-opt.html"><span class="pager__label">下一篇 →</span>架构(可选):大规模语言模型推理与训练优化机制</a></div></nav>
 </article>
 </main>
@@ -97,6 +97,7 @@
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.18"></script>
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
   mermaid.initialize({ startOnLoad: true, theme: 'neutral', fontFamily: 'Benne, Georgia, serif' });

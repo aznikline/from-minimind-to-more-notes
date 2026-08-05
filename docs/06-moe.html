@@ -145,60 +145,59 @@
 <div class="section-critique"><h2 id="sec-32">批判性批注</h2>
 <ul><li><strong>"Dense MoE"术语未定义</strong>:开篇模板列 Dense MoE,但正文未出现该术语,需读者自行理解为"传统粗粒度全竞争 MoE",存在术语缺口。</li><li><strong>z-loss 缺位</strong>:模板要求 z-loss 公式,但原文仅在路由可微性处提噪声/Gumbel-Softmax,未给 z-loss 数学定义。补注:Switch 原文 $L_z=\frac{1}{B}\sum_i(\text{logit}_i)^2$ 约束 logits 平方稳训练,此处应自行补全。</li><li><strong>GPT-4 数据为"社区推测"</strong>:表 2-1 标 ~1.8T/~200B?/N/A,标注为推测,作为对比基准可信度低,引用时需声明不确定性。</li><li><strong>"推理省算力"叙述略过显存代价</strong>:条件计算一节虽提"显存饥渴",但核心宣称仍偏乐观;实际部署 MoE 的 VRAM 门槛是消费级落地主要障碍,应更突出权衡。</li><li><strong>DeepSeek-V3 性能归因偏单一</strong>:把 SOTA 归于"无 aux loss + 细粒度 + 共享专家",但 MLA 注意力、FP8、通信重叠、数据/RL 等同样关键,归因应更系统。</li><li><strong>Minimind 与工业级差距自承不足</strong>:作者承认"工业级训练/部署优化 Minimind 无法呈现",但仍把 Minimind 当主要代码载体,读者易误把玩具实现当生产范式;建议明确边界。</li><li><strong>aux loss 方差形式与点积形式不严格等价</strong>:文中并列给 $N\sum f_iP_i$ 与方差 $\sum(1/N-\bar g)^2$,二者优化面不同,未讨论差异,易误导。</li><li><strong>FP8 "几乎不损失精度"缺量化证据</strong>:仅定性叙述,未给 PPL/loss 曲线对比,工程宣称应附数据。</li><li><strong>未来趋势一节过于宽泛</strong>:"MoE 与 Reasoning 融合""记忆与推理解耦"指向"看最新文章",信息密度低。</li></ul>
 </div><h2 id="sec-33">篇内小思维导图</h2>
-<div class="mermaid-wrap"><div class="mermaid">mindmap
-  root((MoE 架构))
-    核心理念
-      稀疏激活
-        每 token 仅激活 K≪N 专家
-        FLOPs∝激活参数
-      条件计算
-        动态路由
-        知识模块化
-        显存饥渴
-    基础组件
-      SwiGLU
-        Swish门控+GLU
-        二阶交互/梯度光滑
-        宽度压2/3参数预算匹配
-      投影层
-        Gate/Up升维
-        Down降维(精度敏感)
-    架构形态
-      传统 Dense MoE
-        GShard/Switch/Mixtral
-        粗粒度全竞争+aux loss
-      DeepSeekMoE
-        细粒度专家(V3 256×8)
-        共享专家(知识解耦)
-        无aux loss动态偏置
-      Minimind
-        路由+共享专家
-        训练/推理双前向
-    路由机制
-      Top-K Gating
-        亲和度/KeepTopK/Softmax
-        不可微(未选专家无梯度)
-      负载均衡
-        专家坍缩/赢家通吃
-        aux loss(传统,副作用)
-        动态偏置b_i(DeepSeek,解耦)
-    工程优化
-      专家并行EP
-        All-to-All×2
-        DeepEP+通信计算重叠
-      容量因子+token drop
-      FP8混合精度
-        分块缩放
-        Down层特殊处理
-    训练vs推理
-      训练
-        repeat_interleave建图
-        0*params防DDP死锁
-        遍历全部专家
-      推理
-        argsort+bincount装箱
-        跳空专家省kernel
-        scatter_add_原子累加</div></div>
+<div class="markmap"># MoE 架构
+## 核心理念
+### 稀疏激活
+- 每 token 仅激活 K≪N 专家
+- FLOPs∝激活参数
+### 条件计算
+- 动态路由
+- 知识模块化
+- 显存饥渴
+## 基础组件
+### SwiGLU
+- Swish门控+GLU
+- 二阶交互/梯度光滑
+- 宽度压2/3参数预算匹配
+### 投影层
+- Gate/Up升维
+- Down降维(精度敏感)
+## 架构形态
+### 传统 Dense MoE
+- GShard/Switch/Mixtral
+- 粗粒度全竞争+aux loss
+### DeepSeekMoE
+- 细粒度专家(V3 256×8)
+- 共享专家(知识解耦)
+- 无aux loss动态偏置
+### Minimind
+- 路由+共享专家
+- 训练/推理双前向
+## 路由机制
+### Top-K Gating
+- 亲和度/KeepTopK/Softmax
+- 不可微(未选专家无梯度)
+### 负载均衡
+- 专家坍缩/赢家通吃
+- aux loss(传统,副作用)
+- 动态偏置b_i(DeepSeek,解耦)
+## 工程优化
+### 专家并行EP
+- All-to-All×2
+- DeepEP+通信计算重叠
+### 容量因子+token drop
+### FP8混合精度
+- 分块缩放
+- Down层特殊处理
+## 训练vs推理
+### 训练
+- repeat_interleave建图
+- 0*params防DDP死锁
+- 遍历全部专家
+### 推理
+- argsort+bincount装箱
+- 跳空专家省kernel
+- scatter_add_原子累加</div>
 <nav class="pager"><div class="pager__prev"><a href="05-kvcache-flashattn.html"><span class="pager__label">← 上一篇</span>架构:大模型优化方法(KV Cache → Flash Attention)</a></div><div class="pager__next"><a href="07-assemble.html"><span class="pager__label">下一篇 →</span>架构:超级拼装(搭建自己的大模型)</a></div></nav>
 </article>
 </main>
@@ -208,6 +207,7 @@
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.18"></script>
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
   mermaid.initialize({ startOnLoad: true, theme: 'neutral', fontFamily: 'Benne, Georgia, serif' });
