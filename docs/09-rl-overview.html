@@ -113,7 +113,14 @@
 <div class="section-critique"><h2 id="sec-20">批判性批注</h2>
 <ol><li><strong>过度乐观的"顿悟"叙事</strong>:作者把 GRPO 描绘为 R1 涌现推理的核心功臣,但未充分讨论数据、模型规模、冷启动 SFT 等混杂变量——GRPO 是必要条件还是充分条件存疑。R1-Zero 确实纯 RL,但基座是 V3(已极强),把"涌现"全归功于 GRPO 算法本身偏激进。</li><li><strong>对比表缺定量基准</strong>:表中说 ReMax"持平 PPO"、RLOO"超越 PPO"、KTO"匹敌甚至超越 DPO",但未给具体指标/数据集/模型规模区间,读者难以验证。这类"持平/超越"声明对超参极敏感。</li><li><strong>DPO 局限被一带而过</strong>:作者列了分布偏移、模式坍塌、缺探索,但未强调 DPO 在迭代式 RLHF 中的致命伤——online DPO/IPO 的研究正说明离线 DPO 在多轮对齐里效果衰减,这点对工业落地很关键。</li><li><strong>GRPO 的 KL 项实现细节缺失</strong>:公式写 $D_{KL}(\pi_\theta\|\pi_{ref})$,但实践中 DeepSeek 用的是 token 级 KL 的某种近似(如 Schulman 的 $k_3$ 估计),作者未点明这个工程关键,易让读者误以为是精确 KL。</li><li><strong>Dr.GRPO 的"难度偏差"论述自相矛盾</strong>:先说标准差归一化"强制拉平简单/困难问题梯度"(不合理),又说引入"历史感知锚点"解决——但历史感知锚点的具体机制没讲清,读者无法判断这是真改进还是话术。</li><li><strong>SAPO/GTPO 篇幅仓促</strong>:SAPO 的"软门控 $g_t$"和 GTPO 的"熵奖励"都只给了一句直觉 + 一个公式骨架($L=-g_t A_t$),缺乏推导和实验参照,像在赶进度。</li><li><strong>PRM/STaR 与主线的耦合不清</strong>:第 7 章突然引入 PRM/STaR,但未说明它们与 GRPO 是替代、叠加还是互补——总结里又说"GRPO 主训练 + PRM 推理时引导",这个分工关系应在正文就点明。</li><li><strong>"Critic 退出历史舞台"的结论过强</strong>:Reinforce++ 的工程技巧论、GRPO 的组基线论都支持去 Critic,但在连续控制、多步环境(非 LLM 场景)Critic 仍不可替代;作者把"LLM 微调场景"泛化为"RL 整体"。</li><li><strong>未触及安全问题</strong>:RLHF 的对齐税(alignment tax)、越狱、过度拒绝等安全议题完全缺席,而这是 RLHF 落地的核心矛盾之一。</li><li><strong>公式符号不统一</strong>:有时 $\pi_\theta/\pi_{old}$,有时 $\pi^*/\pi_{ref}$,有时 $r_t(\theta)$;优势有时 $A_t$ 有时 $\hat A_t$ 有时 $A_i$,对初学者不友好。</li></ol>
 </div><h2 id="sec-21">章内小思维导图</h2>
-<div class="markmap"># 大模型 RL
+<div class="markmap">---
+markmap:
+  initialExpandLevel: 2
+  spacingVertical: 20
+  spacingHorizontal: 90
+  maxWidth: 200
+---
+# 大模型 RL
 ## 信任区域 Actor-Critic
 ### TRPO
 - KL 约束 + 二阶海森
@@ -165,7 +172,7 @@
 ## 趋势
 ### 去繁就简 去 Critic
 ### 粒度精细化 Token/序列/熵
-### 多策略融合 STaR+ORPO+GRPO+PRM</div>
+### 多策略融合 STaR+ORPO+GRPO+PRM</div><p class="markmap-hint">点击节点展开 / 折叠</p>
 <nav class="pager"><div class="pager__prev"><a href="08-infer-train-opt.html"><span class="pager__label">← 上一篇</span>架构(可选):大规模语言模型推理与训练优化机制</a></div><div class="pager__next"><a href="10-pretrain.html"><span class="pager__label">下一篇 →</span>算法:Minimind 的 Pretrain</a></div></nav>
 </article>
 </main>

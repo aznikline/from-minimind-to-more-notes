@@ -268,7 +268,9 @@ def build_header(notes: list[dict]) -> str:
 
 def _mermaid_mindmap_to_markmap(src: str) -> str:
     """Convert mermaid `mindmap` source to markmap markdown.
-    root(depth1)->#, d2->##, d3->###, d>=4->nested bullets."""
+    root(depth1)->#, d2->##, d3->###, d>=4->nested bullets.
+    带 frontmatter:initialExpandLevel=2(默认只展开到主分支,点击展开子树,
+    避免密集思维导图挤成一团)+ 间距配置。"""
     entries = []
     for line in src.splitlines():
         s = line.strip()
@@ -281,7 +283,15 @@ def _mermaid_mindmap_to_markmap(src: str) -> str:
         return ''
     min_d = min(d for d, _ in entries)
     entries = [(d - min_d + 1, t) for d, t in entries]
-    out = []
+    out = [
+        '---',
+        'markmap:',
+        '  initialExpandLevel: 2',
+        '  spacingVertical: 20',
+        '  spacingHorizontal: 90',
+        '  maxWidth: 200',
+        '---',
+    ]
     for d, text in entries:
         if d == 1:
             m = re.match(r'^root[\(\[\{]+([^\)\]\}]+)[\)\]\}]+$', text)
@@ -304,7 +314,7 @@ def mermaid_wrap(body_html: str) -> str:
         if is_mindmap:
             mm_md = _mermaid_mindmap_to_markmap(inner)
             # markmap-autoloader picks up <div class="markmap"> with markdown text inside
-            return f'<div class="markmap">{_escape(mm_md)}</div>'
+            return f'<div class="markmap">{_escape(mm_md)}</div><p class="markmap-hint">点击节点展开 / 折叠</p>'
         return f'<div class="mermaid-wrap"><div class="mermaid">{inner}</div></div>'
 
     return re.sub(

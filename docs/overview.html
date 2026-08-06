@@ -57,7 +57,14 @@
 <p><strong>关键事实</strong>:minimind 是<strong>极小体量(26M)却对齐 Llama3/DeepSeek-V2 前沿设计</strong>的"现代 LLM 特性博物馆"——Decoder-Only + RoPE/YaRN + GQA + Flash Attention + RMSNorm(Pre-Norm) + SwiGLU + 混合 MoE(DeepSeek 式 Shared+Routed) + Weight Tying。理解这一个 Block,就等于理解了 Llama3 / Qwen2 / DeepSeek 的核心运作机制。</p>
 <p>---</p>
 <h2 id="sec-2">二、全篇知识总思维导图</h2>
-<div class="markmap"># From Minimind to More
+<div class="markmap">---
+markmap:
+  initialExpandLevel: 2
+  spacingVertical: 20
+  spacingHorizontal: 90
+  maxWidth: 200
+---
+# From Minimind to More
 ## 基石篇 Foundations
 ### Tokenizer
 - BPE 频率合并自底向上
@@ -173,7 +180,7 @@
 - 7板块纯题目无答案
 - 架构20/预训练15/微调15/对齐15/推理13/RAG12
 - 导览索引非教材
-- 部分考点2026已过时</div>
+- 部分考点2026已过时</div><p class="markmap-hint">点击节点展开 / 折叠</p>
 <p>---</p>
 <h2 id="sec-3">三、核心主线:从基石到对齐的完整训练链路</h2>
 <p>整本笔记串起来就是<strong>一个 LLM 从零到对齐的完整生命周期</strong>,按数据流:</p>

@@ -107,7 +107,14 @@
 <div class="section-critique"><h2 id="sec-28">批判性批注</h2>
 <ol><li><strong>"KV Cache 把复杂度从 O(L²) 降到 O(L)"的说法需要限定语境</strong>:严格说,单步 Decode 计算量(单个 q 与全量 K 算注意力)是 O(L);但 Prefill 阶段仍是 O(L²)。文章未明确区分 Prefill 与 Decode 的复杂度,易让读者误以为整体复杂度都是 O(L)</li><li><strong>Flash Attention "未写入 HBM 的 N×N 矩阵"略简化</strong>:实际是分块地写、读局部统计量,且反向需重算;V2 的外层循环调整描述较含糊("在这个 Query 块上迭代 K/V 块")——V2 真正的改进是把 Q 块作为外层以减少 K/V 块的重复读写,文章的描述不够精确</li><li><strong>Flash Decoding "提速 8 倍"的数字需打问号</strong>:8x 是特定长上下文(32k+)、特定硬件下的峰值;短序列或大 Batch 下收益有限,文章未给出适用边界</li><li><strong>MLA 一节过于简略</strong>:只说"低秩压缩",没解释低秩分解的具体机制(投影到 latent 再还原)、没给显存对比数字,作为"未来展望"略单薄</li><li><strong>PagedAttention 放在"未来展望"略奇怪</strong>:vLLM 的 PagedAttention 已是工业标配而非未来;且文章标题提到 KV Cache 却把 PagedAttention 放最后,结构上 PagedAttention 更适合放在 KV Cache 显存挑战之后展开</li><li><strong>MQA "训练不稳定"的说法缺依据</strong>:文中说"早期实验表明 MQA 训练初期容易出现不收敛",但没给引用或机制解释,可信度存疑;实际业界对 MQA 的主要批评是精度损失,训练稳定性的说法较弱</li><li><strong>例题 2 的"15GB 可用"是粗估</strong>:从 160GB 减 140GB 权重应剩 20GB,文章直接拍 15GB 留余量,这种"保险估计"让结论(12 并发)缺乏严谨性,应说明余量构成</li><li><strong>Minimind 代码的 Flash 启用条件偏保守</strong>:<code>seq_len &gt; 1 and past_key_value is None</code> 意味着 Decoding 阶段(有 cache)永不走 Flash——这与业界"Flash Decoding"的实践相悖,说明教学实现未覆盖推理加速的 Flash 路径,只是依赖 PyTorch SDPA 在 Prefill 时加速</li><li><strong>例题 3 的 "16ms 搬砖"类比生动但忽略计算时间</strong>:实际每 Token 还要算 80 层 FFN+Attention,16ms 只是 IO 部分;真实延迟会更高,文章"还没开始算"的强调略夸张</li><li><strong>"Flash Attention 打破二次方存储瓶颈"措辞不严谨</strong>:Flash 没有改变注意力的理论复杂度(仍 O(N²) FLOPs),它打破的是 HBM 访问的二次方存储/读写瓶颈;严格说应表述为"打破二次方 HBM 访问瓶颈"</li></ol>
 </div><h2 id="sec-29">篇内小思维导图</h2>
-<div class="markmap"># LLM推理优化
+<div class="markmap">---
+markmap:
+  initialExpandLevel: 2
+  spacingVertical: 20
+  spacingHorizontal: 90
+  maxWidth: 200
+---
+# LLM推理优化
 ## 瓶颈转移
 ### 算力FLOPS转显存带宽加容量
 ### Roofline P=min π Iβ
@@ -140,7 +147,7 @@
 ## Minimind实现
 ### repeat_kv 把KV头对齐Q头
 ### Attention GQA投影加RoPE加cat cache
-### Flash仅Prefill无cache时启用</div>
+### Flash仅Prefill无cache时启用</div><p class="markmap-hint">点击节点展开 / 折叠</p>
 <nav class="pager"><div class="pager__prev"><a href="04-norm.html"><span class="pager__label">← 上一篇</span>架构:归一化技术(原理、演进与前沿)</a></div><div class="pager__next"><a href="06-moe.html"><span class="pager__label">下一篇 →</span>架构:混合专家模型(MoE)</a></div></nav>
 </article>
 </main>

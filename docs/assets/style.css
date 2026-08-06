@@ -190,14 +190,21 @@ footer {
 }
 .prose .mermaid { width: 100%; }
 .prose .markmap {
-  margin: 1.5rem 0; height: 540px; padding: 0.6rem;
+  margin: 1.5rem 0; height: 460px; padding: 0.6rem 0;
   background: var(--code-bg); border: 1px solid var(--code-border);
-  border-radius: var(--radius); overflow: hidden;
+  border-radius: var(--radius); overflow: auto; position: relative;
 }
-.prose .markmap svg { width: 100%; height: 100%; display: block; }
-.prose .markmap .markmap-node text { fill: var(--fg); font-size: 13px; font-family: var(--sans); }
+.prose .markmap svg { display: block; max-width: 100%; }
+.prose .markmap-hint {
+  position: absolute; bottom: 0.4rem; right: 0.6rem; margin: 0;
+  font-size: 0.72rem; color: var(--muted); font-family: var(--sans);
+  background: var(--code-bg); padding: 0.1rem 0.45rem; border-radius: var(--radius);
+  pointer-events: none;
+}
+.prose .markmap .markmap-node-circle { cursor: pointer; }
+.prose .markmap .markmap-node text { fill: var(--fg); font-size: 14px; font-family: var(--sans); }
 .prose .markmap .markmap-link { fill: none; stroke-width: 1.4; }
-@media (max-width: 760px) { .prose .markmap { height: 400px; } }
+@media (max-width: 760px) { .prose .markmap { height: 380px; } }
 
 /* ---------- LaTeX ---------- */
 .prose .katex-display { margin: 1.2rem 0; overflow-x: auto; overflow-y: hidden; padding: 0.3rem 0; }
