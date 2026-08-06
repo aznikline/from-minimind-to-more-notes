@@ -155,7 +155,7 @@ $$
 
 总体判断：作者对 Minimind 代码的工程细节（左填充、错位切片、gather、mask、DDP 剥壳等）讲解准确且精彩；对 SPO 算法层面的"创新性"描述偏宣传化，建议读者把它当作"REINFORCE + EMA baseline + KL 正则"的工程实现来理解，而非已定论的新算法。
 
-## 筐内小思维导图（mermaid 或缩进树）
+## 篇内小思维导图（mermaid 或缩进树）
 
 ```mermaid
 flowchart TD
