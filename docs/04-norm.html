@@ -77,32 +77,39 @@
 <div class="section-critique"><h2 id="sec-8">批判性批注</h2>
 <ul><li><strong>"内部协变量偏移"叙事过时</strong>:现代研究(如 Santurkar et al. 2018)对 ICS 是否真是 BN 成功主因存疑,归一化真正作用更可能是平滑 Loss 曲面、降低 Lipschitz 常数。文中把 ICS 当唯一动因略简化,但作为教学引入可接受。</li><li><strong>"RMSNorm 表达力弱于 LN"未量化</strong>:文中说 LN 理论上限略高、RMSNorm 表达力略弱,但未给出 PPL/下游任务对照实验数据,仅以"消融发现重缩放才是主因"立论,属经验性结论而非严格证明。LLaMA 系实证已表明差异可忽略。</li><li><strong>"Post-Norm 性能上限略高"缺乏机制解释</strong>:仅归因于"每层输入标准化、充分利用非线性",未区分是优化景观更优还是最终收敛点更优,二者不能混为一谈。</li><li><strong>DeepNorm 的 α/β 公式偏 cargo-cult</strong>:公式来自理论推导但文中未展示推导,读者易当成"查表背参数";且 1000 层实验在多语言翻译这种任务上,BLEU+5 是否能推广到通用 LLM 未验证,DeepNet 后续在主流 LLM 中并未普及,说明其工程价值有限。</li><li><strong>QK-Norm 与 Softmax Capping 的副作用未讨论</strong>:截断会改变注意力分布形状,Capping 到 [-30,30] 在长上下文/稀疏注意力下可能损失表达力;文中只谈稳定不谈代价。</li><li><strong>Sandwich-Norm / NormFormer 适用边界模糊</strong>:都是特定场景(图像生成、1.3B 研究)产物,文中列为"专用变体"但未说明何时该用、何时过度,实践者易误以为"越多 Norm 越好"。</li><li><strong>Minimind eps=1e-5 与 LLaMA 官方 1e-6 不一致</strong>:文中代码注释未点出这一差异,作为教学实现可,但若读者照搬到生产,eps 选择会影响数值稳定性,应标注。</li><li><strong>"性能上限略高/略低"量级未给</strong>:Post vs Pre 的 BLEU/PPL 差距通常 &lt;1%,文中用"略"一笔带过,易让读者高估该差异的重要性,从而错误选择 Post-Norm。</li><li><strong>缺少对 DiT/AdaLN 等新趋势提及</strong>:作为"前沿架构"章节,未涉及 diffusion transformer 中的 adaptive LN 等正在兴起的归一化设计,前沿性略有欠缺。</li></ul>
 </div><h2 id="sec-9">篇内小思维导图(缩进树)</h2>
-<pre><code>归一化技术
-├── 解决的问题
-│   ├── 内部协变量偏移(ICS)
-│   └── 深层梯度爆/消、Loss 曲面不平滑
-├── 按"沿哪个维统计"分
-│   ├── BN(CV, batch 维)→ NLP 失效(变长/小 batch/Token 独立)
-│   ├── LN(NLP, 特征维)→ 双不变性(re-center / re-scale)
-│   └── GN(分组, 介于两者)
-├── 按架构位置分
-│   ├── Post-Norm(BERT/原 Transformer)→ 性能略高, 需 Warm-up, 梯度脆
-│   └── Pre-Norm(GPT-2/3, LLaMA)→ 高速公路恒等路径, 主流, 但深度诅咒
-├── LN 的效率简化
-│   └── RMSNorm(去 centering, 去 β)→ LLaMA/Gemma/Mistral 标配
-│       ├── 单次扫描省内存带宽(推理快 10-40%)
-│       └── Gemma 修正: (1+γ) 近似恒等初始化
-├── 超深/超大场景专用
-│   ├── DeepNorm(α 放大主干 + β 缩放子层, 1000 层 DeepNet)
-│   ├── QK-Norm(治注意力熵坍塌, ViT-22B)
-│   │   └── 变体: QKV-Norm, Softmax Capping(Mistral)
-│   ├── Sandwich-Norm(CogView 图像, 二次归一化)
-│   └── NormFormer(三重过归一化, 加速收敛)
-└── Minimind 实践
-    └── RMSNorm + Pre-Norm
-        ├── weight=ones, 无 β
-        ├── torch.rsqrt 加速
-        └── float32 计算 → type_as 回原精度(数值稳定)</code></pre>
+<div class="markmap">---
+markmap:
+  initialExpandLevel: 2
+  spacingVertical: 18
+  spacingHorizontal: 90
+  maxWidth: 220
+---
+# 归一化技术
+## 解决的问题
+### 内部协变量偏移(ICS)
+### 深层梯度爆/消、Loss 曲面不平滑
+## 按"沿哪个维统计"分
+### BN(CV, batch 维)→ NLP 失效(变长/小 batch/Token 独立)
+### LN(NLP, 特征维)→ 双不变性(re-center / re-scale)
+### GN(分组, 介于两者)
+## 按架构位置分
+### Post-Norm(BERT/原 Transformer)→ 性能略高, 需 Warm-up, 梯度脆
+### Pre-Norm(GPT-2/3, LLaMA)→ 高速公路恒等路径, 主流, 但深度诅咒
+## LN 的效率简化
+### RMSNorm(去 centering, 去 β)→ LLaMA/Gemma/Mistral 标配
+- 单次扫描省内存带宽(推理快 10-40%)
+- Gemma 修正: (1+γ) 近似恒等初始化
+## 超深/超大场景专用
+### DeepNorm(α 放大主干 + β 缩放子层, 1000 层 DeepNet)
+### QK-Norm(治注意力熵坍塌, ViT-22B)
+- 变体: QKV-Norm, Softmax Capping(Mistral)
+### Sandwich-Norm(CogView 图像, 二次归一化)
+### NormFormer(三重过归一化, 加速收敛)
+## Minimind 实践
+### RMSNorm + Pre-Norm
+- weight=ones, 无 β
+- torch.rsqrt 加速
+- float32 计算 → type_as 回原精度(数值稳定)</div><p class="markmap-hint">点击节点展开 / 折叠</p>
 <nav class="pager"><div class="pager__prev"><a href="03-embedding-pos.html"><span class="pager__label">← 上一篇</span>基石:Embedding 与位置编码</a></div><div class="pager__next"><a href="05-kvcache-flashattn.html"><span class="pager__label">下一篇 →</span>架构:大模型优化方法(KV Cache → Flash Attention)</a></div></nav>
 </article>
 </main>

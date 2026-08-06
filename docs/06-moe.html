@@ -83,25 +83,28 @@
 <h3 id="sec-11">z-loss</h3>
 <p>本文未单独给出 z-loss 公式,提及 Top-k 路由可微性问题时提到用噪声/Gumbel-Softmax 缓解未选中专家无梯度问题;传统方案另设 z-loss 约束 router logits 平方以稳训练,但文中未展开。(批注:如需补 z-loss 应查原 Switch Transformer 论文 $L_z = \frac{1}{B}\sum (\text{logit})^2$。)</p>
 <h2 id="sec-12">架构演进</h2>
-<pre><code>MoE 形态演进(粗放 → 精细,云端 → 端侧)
-│
-├─ 早期学术: GShard / Switch Transformer
-│   · 粗粒度大专家, 全竞争路由
-│   · 引入 aux loss + capacity factor + token drop
-│
-├─ Mistral Mixtral 8x7B / 8x22B
-│   · 标准 Top-2 路由
-│   · 8 个粗粒度专家, 单专家知识混合重
-│
-├─ DeepSeekMoE (V2 → V3) 革命
-│   ├ 细粒度专家分割: V2 160路×激活6; V3 256路×激活8, 组合爆炸
-│   ├ 共享专家: V2 2个; V3 1个更大容量, 恒激活, 知识解耦
-│   └ 无辅助损失路由: V3 动态偏置 b_i, PID 式调整
-│
-└─ Minimind 轻量化 MoE
-    · 同样采用 路由专家 + 共享专家
-    · 可配 n_routed_experts / n_shared_experts / top_k
-    · 训练/推理两套前向实现(autograd 正确 vs 极速)</code></pre>
+<div class="markmap">---
+markmap:
+  initialExpandLevel: 2
+  spacingVertical: 18
+  spacingHorizontal: 90
+  maxWidth: 220
+---
+# MoE 形态演进(粗放 → 精细,云端 → 端侧)
+## 早期学术: GShard / Switch Transformer
+## · 粗粒度大专家, 全竞争路由
+## · 引入 aux loss + capacity factor + token drop
+## Mistral Mixtral 8x7B / 8x22B
+## · 标准 Top-2 路由
+## · 8 个粗粒度专家, 单专家知识混合重
+## DeepSeekMoE (V2 → V3) 革命
+## 细粒度专家分割: V2 160路×激活6; V3 256路×激活8, 组合爆炸
+## 共享专家: V2 2个; V3 1个更大容量, 恒激活, 知识解耦
+## 无辅助损失路由: V3 动态偏置 b_i, PID 式调整
+## Minimind 轻量化 MoE
+## · 同样采用 路由专家 + 共享专家
+## · 可配 n_routed_experts / n_shared_experts / top_k
+## · 训练/推理两套前向实现(autograd 正确 vs 极速)</div><p class="markmap-hint">点击节点展开 / 折叠</p>
 <p>DeepSeek-V3 vs 主流模型(文末表):</p>
 <table><thead><tr><th>特性</th><th>DeepSeek-V3</th><th>Llama-3.1-405B</th><th>Mixtral 8x22B</th></tr></thead><tbody><tr><td>架构</td><td>MoE(细粒度+共享)</td><td>Dense</td><td>MoE(标准Top-2)</td></tr><tr><td>总参/激活</td><td>671B / 37B</td><td>405B / 405B</td><td>141B / 39B</td></tr><tr><td>层数</td><td>61</td><td>126</td><td>56</td></tr><tr><td>专家</td><td>256 routed + 1 shared</td><td>N/A</td><td>8</td></tr><tr><td>注意力</td><td>MLA</td><td>GQA</td><td>GQA</td></tr><tr><td>训练精度</td><td>FP8 混合</td><td>BF16</td><td>BF16</td></tr><tr><td>负载均衡</td><td>无 aux loss(Bias)</td><td>N/A</td><td>aux loss</td></tr></tbody></table>
 <h2 id="sec-13">关键算法/流程</h2>

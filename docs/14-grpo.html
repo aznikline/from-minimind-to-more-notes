@@ -95,36 +95,36 @@ loss = (policy_loss + aux_loss) / args.accumulation_steps</code></pre>
 <div class="section-critique"><h2 id="sec-20">批判性批注</h2>
 <ul><li><strong>作者对"无偏缩放 $1/(K-1)$"的论证偏口语化</strong>:实际 Dr.GRPO 论文里更精确的表述是 std 归一化中分母应为 $\sqrt{\mathrm{Var}}$(无偏方差)而非样本 std 的有偏估计,且 baseline 还涉及 GAE 项的严格无偏。本文用"$1/K→1/(K-1)$"概括,工程上够用但学术面试若被追问"为什么是 K-1 而非其他无偏形式"时容易露怯,需回到 Dr.GRPO 原文(Liu et al. 2025)对照策略梯度定理推导。</li><li><strong>"GSPO 把整条序列梯度压制=连坐惩罚"是作者借 SAPO 章节的转述,但 GSPO 论文未自承此缺陷</strong>:这是作者用 SAPO 视角给 GSPO 补的批判,虽直觉合理(几千字序列里混进几个离谱 token 会让整条序列 ratio 失真),但缺定量实验支撑;面试时若被问"GSPO vs SAPO 谁更好"应回答"分场景:MoE 路由稳定选 GSPO,样本效率 + drop-in 选 SAPO,两者正交可叠加"。</li><li><strong>DAPO 的 Clip-Higher 数值($1.28$/$0.8$)是经验值</strong>:原文未给出该参数的敏感性消融,实际部署需按模型规模重调;且非对称裁剪破坏了 PPO 的信任域理论保证,长训可能 reintroduce off-policy 噪声——这一点作者未点明。</li><li><strong>GTPO 的"高熵=决策点=关键 token"假设在反例上不稳健</strong>:模型在"毫无头绪瞎猜"时也高熵,这种高熵 token 不一定是关键决策而是噪声;GTPO 论文靠负向序列回退平缓分配来兜底,但"瞎猜高熵"与"决策高熵"在分布上难分。面试若追问应主动提此局限。</li><li><strong>Minimind 实现里 <code>score = max(min(score, scale), -scale)</code> 截断到 $[-3,3]$ 是工程 hack 而非理论需要</strong>:会扭曲 RM 的相对排序,尤其当真实 reward 集中在边界附近时;Dr.GRPO/DAPO 的"长度偏置"修正并不能解决这种截断偏置。可作为"工程实践 vs 理论洁净"的批判点。</li><li><strong>作者把"PRM 是护城河"说得过于绝对</strong>:DeepSeek-Math 之外,R1-Zero 恰恰证明纯 ORM + GRPO 也能涌现强推理;PRM 在 R1 路线里反而被淡化。文中"不可逾越的护城河"措辞偏营销,宜降为"在超难定理证明/大型工程代码场景下 PRM 仍显著优于纯 ORM"。</li><li><strong>STaR 章节把"生成-过滤-合理化"流程归为 RL 前置冷启动是合理但简化的视角</strong>:实际 o1/R1 的冷启动更接近"PRM-guided MCTS + 拒绝采样 + SFT"复合管道,STaR 只是其中思想源头之一;作者用 STaR 代表整个冷启动略偏简化。</li></ul>
 </div><h2 id="sec-21">章内小思维导图</h2>
-<pre><code>GRPO 变体谱系(按"省 Critic 之后修什么偏置"主线)
-│
-├─ 基石:GRPO ── 组内 Z-score 优势,去 Critic,4→3 模型
-│   痛点遗留:① 长度偏置 ② 熵坍塌 ③ Token 方差 ④ 硬裁剪归零 ⑤ 稀疏 credit
-│
-├─ 修长度偏置 ─ Dr.GRPO
-│   └─ 1/(K-1) 无偏缩放 + 剔除 |o| 除法
-│
-├─ 修熵坍塌 + 算力浪费 + 截断噪声 ─ DAPO(四件套)
-│   ├─ Dynamic Sampling(丢 std=0 组)
-│   ├─ Clip-Higher(非对称 1.28/0.8)
-│   ├─ Token-level Loss(全局拉平,长链权重↑)
-│   └─ Overlong Filter + Soft 软惩罚
-│
-├─ 修 Token 级方差 + MoE 路由漂移 ─ GSPO
-│   └─ 序列级似然比 + 长度归一化 + 序列级 clip
-│        → 可丢 Routing Replay
-│
-├─ 修硬裁剪归零 + 负优势带崩词表 ─ SAPO
-│   ├─ Sigmoid 软门控(梯度永不归零)
-│   └─ 非对称温度 τ_pos/τ_neg(惩罚更谨慎)
-│        → drop-in 替换,保留 Token 级
-│
-└─ 修稀疏信用分配(大锅饭) ─ GTPO
-    └─ 策略熵 H_{i,t} 作权重,A_{i,t}=A_i·w_{i,t}
-         → 白嫖 Forward 副产物,无需 PRM 即伪过程奖励
-
-旁支:
-├─ PRM ── 过程奖励,逐 step 打分(MCTS/规则验证器自动标注)
-└─ STaR ── RL 前置冷启动(生成-过滤-合理化-SFT 循环)</code></pre>
+<div class="markmap">---
+markmap:
+  initialExpandLevel: 2
+  spacingVertical: 18
+  spacingHorizontal: 90
+  maxWidth: 220
+---
+# GRPO 变体谱系(按"省 Critic 之后修什么偏置"主线)
+## 基石:GRPO ── 组内 Z-score 优势,去 Critic,4→3 模型
+## 痛点遗留:① 长度偏置 ② 熵坍塌 ③ Token 方差 ④ 硬裁剪归零 ⑤ 稀疏 credit
+## 修长度偏置 ─ Dr.GRPO
+### 1/(K-1) 无偏缩放 + 剔除 |o| 除法
+## 修熵坍塌 + 算力浪费 + 截断噪声 ─ DAPO(四件套)
+### Dynamic Sampling(丢 std=0 组)
+### Clip-Higher(非对称 1.28/0.8)
+### Token-level Loss(全局拉平,长链权重↑)
+### Overlong Filter + Soft 软惩罚
+## 修 Token 级方差 + MoE 路由漂移 ─ GSPO
+### 序列级似然比 + 长度归一化 + 序列级 clip
+### → 可丢 Routing Replay
+## 修硬裁剪归零 + 负优势带崩词表 ─ SAPO
+### Sigmoid 软门控(梯度永不归零)
+### 非对称温度 τ_pos/τ_neg(惩罚更谨慎)
+### → drop-in 替换,保留 Token 级
+## 修稀疏信用分配(大锅饭) ─ GTPO
+### 策略熵 H_{i,t} 作权重,A_{i,t}=A_i·w_{i,t}
+### → 白嫖 Forward 副产物,无需 PRM 即伪过程奖励
+- 旁支:
+## PRM ── 过程奖励,逐 step 打分(MCTS/规则验证器自动标注)
+## STaR ── RL 前置冷启动(生成-过滤-合理化-SFT 循环)</div><p class="markmap-hint">点击节点展开 / 折叠</p>
 <nav class="pager"><div class="pager__prev"><a href="13-ppo.html"><span class="pager__label">← 上一篇</span>算法:Minimind 的 PPO</a></div><div class="pager__next"><a href="15-spo.html"><span class="pager__label">下一篇 →</span>算法:Minimind 的 SPO</a></div></nav>
 </article>
 </main>

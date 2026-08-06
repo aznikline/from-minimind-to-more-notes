@@ -84,24 +84,29 @@
 <h3 id="sec-15">9. IPO 损失(MSE 回归到固定目标)</h3>
 <p>$$L_{IPO} = \mathbb{E}\left[\left(\log\frac{\pi(y_w|x)}{\pi_{ref}(y_w|x)} - \log\frac{\pi(y_l|x)}{\pi_{ref}(y_l|x)} - \tfrac{\gamma}{2}\right)^2\right]$$</p>
 <h2 id="sec-16">RLHF 流程(SFT → RM → PPO 全链路)</h2>
-<pre><code>[人类示范数据]
-      │ SFT(监督微调,MLE)
-      ▼
-   π_SFT (Reference Model,参数冻结)──────────────┐
-      │                                          │ KL 约束
-      │ 人类偏好对 (y_w, y_l)                     │
-      ▼                                          ▼
-   Reward Model r_φ (Bradley-Terry loss,冻结)   Actor π_θ(可训练)
-      │  打分 r(x,y)                          ↗
-      │                                      / 重要性采样比率
-      ▼                                     /
-   Actor 在线采样 rollout ──→ RM 打分 ──→ 优势 A=GAE(R,V)
-      │                                      │
-      ▼                                      ▼
-   Critic V_φ(可训练) 估计 V(s) ───────── PPO Clipped 更新 Actor+Critic
-                                              │
-                                              ▼
-                                          对齐后的 LLM</code></pre>
+<div class="markmap">---
+markmap:
+  initialExpandLevel: 2
+  spacingVertical: 18
+  spacingHorizontal: 90
+  maxWidth: 220
+---
+# [人类示范数据]
+## SFT(监督微调,MLE)
+## ▼
+## π_SFT (Reference Model,参数冻结)──────────────┐
+                  - KL 约束
+## 人类偏好对 (y_w, y_l)                     │
+## ▼                                          ▼
+## Reward Model r_φ (Bradley-Terry loss,冻结)   Actor π_θ(可训练)
+### 打分 r(x,y)                          ↗
+                - / 重要性采样比率
+## ▼                                     /
+## Actor 在线采样 rollout ──→ RM 打分 ──→ 优势 A=GAE(R,V)
+## ▼                                      ▼
+## Critic V_φ(可训练) 估计 V(s) ───────── PPO Clipped 更新 Actor+Critic
+                - ▼
+              - 对齐后的 LLM</div><p class="markmap-hint">点击节点展开 / 折叠</p>
 <p>四模型显存角色:Actor(训练)、Critic(训练)、Reference(冻结,KL 锚点)、RM(冻结,打分)。PPO 是 on-policy,90% 时间耗在生成 rollout 上。</p>
 <h2 id="sec-17">算法对比表</h2>
 <table><thead><tr><th>算法</th><th>需 Critic</th><th>需 RM</th><th>需 Ref</th><th>在/离线</th><th>显存</th><th>数据形式</th><th>何时用</th></tr></thead><tbody><tr><td><strong>TRPO</strong></td><td>是</td><td>是</td><td>隐式</td><td>在线</td><td>极高</td><td>轨迹</td><td>理论参考,基本不用</td></tr><tr><td><strong>PPO</strong></td><td>是</td><td>是</td><td>是</td><td>在线</td><td>极高(4模型)</td><td>轨迹</td><td>通用 RLHF、机器人、ChatGPT/Claude 首选,稳定压倒一切</td></tr><tr><td><strong>ReMax</strong></td><td>否</td><td>是</td><td>是</td><td>在线</td><td>中</td><td>轨迹</td><td>资源紧、想快速去 Critic,贪婪解码当基线</td></tr><tr><td><strong>RLOO</strong></td><td>否</td><td>是</td><td>是</td><td>在线</td><td>中</td><td>多采样</td><td>能采 K=4~8 个回复,统计无偏,常超 PPO</td></tr><tr><td><strong>Reinforce++</strong></td><td>否</td><td>是</td><td>是</td><td>在线</td><td>中</td><td>轨迹</td><td>想要 PPO 稳定性但不要 Critic,工程技巧移植</td></tr><tr><td><strong>DPO</strong></td><td>否</td><td>否(隐式)</td><td>是</td><td>离线</td><td>低(2模型)</td><td>成对 (y_w,y_l)</td><td>有偏好对、要稳定、要快;通用对话/指令跟随</td></tr><tr><td><strong>IPO</strong></td><td>否</td><td>否</td><td>是</td><td>离线</td><td>低</td><td>成对</td><td>DPO 过拟合/破坏语言能力时,正则更强</td></tr><tr><td><strong>KTO</strong></td><td>否</td><td>否</td><td>是</td><td>离线</td><td>低</td><td>点状(赞/踩)</td><td>只有点状反馈(用户日志),无法构造配对</td></tr><tr><td><strong>ORPO</strong></td><td>否</td><td>否</td><td>否</td><td>离线</td><td>极低</td><td>成对</td><td>SFT+对齐一步到位、无 Ref、资源受限</td></tr><tr><td><strong>GRPO</strong></td><td>否</td><td>否(规则)</td><td>是</td><td>在线</td><td>中低</td><td>组采样 G=64</td><td><strong>数学/代码推理</strong>,大规模 RL,DeepSeek-R1</td></tr><tr><td><strong>Dr.GRPO</strong></td><td>否</td><td>否</td><td>是</td><td>在线</td><td>中低</td><td>组采样</td><td>修 GRPO 的基线/长度/难度偏差</td></tr><tr><td><strong>DAPO</strong></td><td>否</td><td>否</td><td>是</td><td>在线</td><td>中低</td><td>组采样</td><td>大规模推理,AIME SOTA;非对称 Clip+动态采样</td></tr><tr><td><strong>GSPO</strong></td><td>否</td><td>否</td><td>是</td><td>在线</td><td>中低</td><td>组采样</td><td><strong>MoE/长文本</strong>,序列级 Clip 一致性</td></tr><tr><td><strong>SAPO</strong></td><td>否</td><td>否</td><td>是</td><td>在线</td><td>中低</td><td>组采样</td><td>多模态/复杂推理,软门控连续信任区域</td></tr><tr><td><strong>GTPO</strong></td><td>否</td><td>否</td><td>是</td><td>在线</td><td>中低</td><td>组+熵</td><td>防记忆坍缩、提升 Pass@K 上限</td></tr></tbody></table>

@@ -306,21 +306,76 @@ def _mermaid_mindmap_to_markmap(src: str) -> str:
     return '\n'.join(out)
 
 
+def _ascii_tree_to_markmap(src: str) -> str:
+    """Convert ASCII tree (├── └── │ ─ 缩进) to markmap markdown.
+    按树字符的视觉缩进列数推断层级(token: │ / ├─ / └─ / 4空格 等)。
+    03/04/08/11/13/14 等用此格式,非 mermaid mindmap。"""
+    lines = [l.rstrip() for l in src.splitlines() if l.strip()]
+    if not lines:
+        return ''
+    out = ['---', 'markmap:', '  initialExpandLevel: 2',
+           '  spacingVertical: 18', '  spacingHorizontal: 90', '  maxWidth: 220', '---']
+    for i, line in enumerate(lines):
+        stripped = re.sub(r'^[│├└─\s]*', '', line)
+        if not stripped:
+            continue
+        prefix = line[:len(line) - len(stripped)]
+        tokens = re.findall(r'│   |│  |    |  {2,}|├──|└──|├─|└─', prefix)
+        depth = len(tokens)
+        if depth == 0 and prefix.strip() == '':
+            depth = len(prefix) // 4
+        if i == 0 and depth == 0:
+            out.append(f'# {stripped}')
+        elif depth == 0:
+            out.append(f'- {stripped}')
+        elif depth == 1:
+            out.append(f'## {stripped}')
+        elif depth == 2:
+            out.append(f'### {stripped}')
+        else:
+            out.append(f'{"  " * (depth - 3)}- {stripped}')
+    return '\n'.join(out)
+
+
+def _looks_like_ascii_tree(src: str) -> bool:
+    """True if src is an ASCII tree (有 ├──/└──/│ 等树字符)。"""
+    return bool(re.search(r'[├└]─|│', src))
+
+
 def mermaid_wrap(body_html: str) -> str:
-    """Wrap mermaid blocks. mindmap -> markmap <div>; flowchart/graph -> mermaid <div>."""
-    def repl(m: re.Match) -> str:
-        inner = _unescape_html(m.group(2))
-        is_mindmap = inner.strip().splitlines()[0].strip() == 'mindmap' if inner.strip() else False
-        if is_mindmap:
+    """Wrap mermaid blocks. mindmap -> markmap <div>; flowchart/graph -> mermaid <div>.
+    也把 思维导图 段下的 ASCII 树(text 块或裸 ``` 块)转成 markmap。"""
+
+    # 1. mermaid 代码块:mindmap -> markmap;flowchart/graph -> mermaid
+    def repl_mermaid(m: re.Match) -> str:
+        inner = _unescape_html(m.group(1))
+        first = inner.strip().splitlines()[0].strip() if inner.strip() else ''
+        if first == 'mindmap':
             mm_md = _mermaid_mindmap_to_markmap(inner)
-            # markmap-autoloader picks up <div class="markmap"> with markdown text inside
             return f'<div class="markmap">{_escape(mm_md)}</div><p class="markmap-hint">点击节点展开 / 折叠</p>'
         return f'<div class="mermaid-wrap"><div class="mermaid">{inner}</div></div>'
 
-    return re.sub(
-        r'<pre><code (class="language-mermaid")>(.*?)</code></pre>',
-        repl, body_html, flags=re.S
+    body_html = re.sub(
+        r'<pre><code class="language-mermaid">(.*?)</code></pre>',
+        repl_mermaid, body_html, flags=re.S
     )
+
+    # 2. ASCII 树:思维导图段下的 text 块或裸 ``` 块 -> markmap
+    #    匹配 <pre><code class="language-text"> 或 <pre><code>(无 class)
+    def repl_tree(m: re.Match) -> str:
+        inner = _unescape_html(m.group(1))
+        if _looks_like_ascii_tree(inner):
+            mm_md = _ascii_tree_to_markmap(inner)
+            if mm_md.count('\n') > 1:  # 确实转出了树
+                return f'<div class="markmap">{_escape(mm_md)}</div><p class="markmap-hint">点击节点展开 / 折叠</p>'
+        return m.group(0)  # 不是树,原样保留
+
+    # text 块
+    body_html = re.sub(r'<pre><code class="language-text">(.*?)</code></pre>', repl_tree, body_html, flags=re.S)
+    # 裸 ``` 块(无 class) — 只在内容是 ASCII 树时转
+    body_html = re.sub(r'<pre><code>(.*?)</code></pre>', repl_tree, body_html, flags=re.S)
+
+    return body_html
 
 
 PAGE_TPL = """<!DOCTYPE html>

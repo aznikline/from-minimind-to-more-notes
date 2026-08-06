@@ -84,43 +84,50 @@
 <div class="section-critique"><h2 id="sec-8">批判性批注</h2>
 <ol><li><strong>One-step MDP 是教学妥协,代价是丢失信用分配</strong>。把整段 response 当一个动作,所有 token 共享同一个 advantage,无法区分"哪个 token 贡献了高分"。对短回答尚可,对 1536 token 的长生成会严重退化——这正是标准 PPO 用 GAE 的理由。作者虽明确说明这是极简,但未量化其与 GAE 的效果差距,初学者易误以为"这就是 PPO"。</li><li><strong>句子级 ratio 数学上不严谨</strong>。<code>ratio = exp(Σ logp_new - Σ logp_old)</code> 是联合概率比,当 response 长 1000 token 时,即使每个 token 概率只变 0.1%,乘积也会放大到 e^1 ≈ 2.7,极易撞到 clip 边界,使 clip 几乎总是触发,丧失 PPO 的"允许小步更新"的梯度信号。标准实现用 token-level ratio + per-token advantage 才是 PPO 论文的本意。</li><li><strong>KL 估计用 logp 差均值,可能为负</strong>。严格 KL ≥ 0,而 <code>(actor_logp - ref_logp).mean()</code> 在 Actor 比 Ref 概率更集中时可能为负,作为惩罚项反而鼓励偏离——这是潜在 bug。工业实现多用 <code>0.5*(logp_old - logp_new)^2</code>(k3) 或真正的 KL <code>Σ p(log p - log q)</code>。</li><li><strong>advantage 未做标准化</strong>。标准 PPO/TRL 会对一个 batch 内的 advantage 做 <code>(A - mean)/std</code>,Minimind 省略,reward 尺度依赖 Reward Model 输出范围(虽 clip 到 [-3,3]),训练稳定性会受影响。作者未提此点。</li><li><strong>Value loss 用 <code>mse(values, rewards)</code> 而非 <code>mse(values, R_t)</code></strong>。标准做法 target 是 <code>R_t = A_t + V_t</code>(即 GAE return),Minimind 直接用 raw reward 当 target,等价于假设 <code>V_target = R_final</code>,在 one-step MDP 下自洽,但若未来扩展到 GAE 会不一致。</li><li><strong><code>update_old_actor_freq=4</code> 的滚动同步不是标准 PPO 的多 epoch 重用</strong>。标准 PPO 在一个 rollout batch 上做 K(4~10)次 mini-batch epoch,old policy 在整个 batch 期间固定;Minimind 每 4 step 同步 old,等于把 old policy 漂移化,削弱了重要性采样的"同分布"假设。</li><li><strong>reward shaping 的格式奖励(0.5 + 1.0)与 RM 得分(范围 [-3,3])量级不匹配</strong>。格式分最多 1.5 而 RM 最多 3.0,推理模式下两者叠加可能让格式奖励主导,偏离"语义质量"目标。作者未讨论此量级平衡。</li><li><strong>作者明确承认"未联网、纯教学"</strong>,这些简化在教学语境下是合理的——Minimind 的目标是让人理解 PPO 四模型协作与 loss 结构,而非复现 SOTA。批判应落在"读者需知道这些简化在工业中不能直接照搬"。</li><li><strong>积极面</strong>:final_mask 的错位 <code>-1</code> 解释、两次 padding 的区分、采样阶段不算 logp 的工程论证,这几段是全书质量最高的工程讲解之一,对初学者极有价值。</li></ol>
 </div><h2 id="sec-9">篇内小思维导图(缩进树)</h2>
-<pre><code>Minimind PPO
-├── 数据
-│   ├── rlaif-mini.jsonl (1万条 SFT 摘录, assistant="空")
-│   └── RLAIFDataset.__getitem__ 返回 {prompt, answer} 字符串(不 token 化)
-├── 四模型
-│   ├── Actor (可训练, SFT 初始化, 最终产出)
-│   ├── Old Actor (阶段冻结, 每4step同步, 重要性采样分母)
-│   ├── Reference (永久冻结, SFT 快照, KL 锚点)
-│   └── Critic (可训练, lm_head→Linear(h,1), 热启动自 SFT)
-├── 外置 Reward Model
-│   └── InternLM2-1.8B-Reward (冻结, score clip [-3,3])
-├── ppo_train_epoch 10 阶段
-│   1. 编码 (left padding)
-│   2. Rollout (no_grad generate → gen_out [B,P+R])
-│   3. Reward (calculate_rewards: 格式+标记+RM, 推理模式 answer 加权)
-│   4. Critic 前向 → values [B] (取最后有效 token)
-│   5. Advantage = rewards - values.detach()  [one-step, 无 GAE]
-│   6. Actor/Old/Ref 三路前向 (log_softmax+gather+final_mask+sum)
-│   7. Loss = policy_clip + vf_coef*value_mse + kl_coef*kl_ref + aux
-│   8. backward + clip_grad_norm + optimizer.step
-│   9. 每4step 同步 old_actor (state_dict→CPU→load)
-│   10. del 大张量防 OOM
-├── 关键工程细节
-│   ├── final_mask 错位 -1 (用 B 预测 C 发生在 B 位置)
-│   ├── 两次 padding (左填充对齐生成 / 右填充维持矩形)
-│   ├── 采样不算 logp (OOM + 并行效率)
-│   └── KL 用 (logp_a - logp_r).mean() 近似, 可能非负不保证
-├── 标准版差异 (文中给出但未实现)
-│   ├── GAE: δ_t = r_t + γV_{t+1} - V_t; A_t = Σ(γλ)^l δ
-│   ├── token-level ratio 而非句子级
-│   ├── reward 分配到每 token (中间 -βKL, 末位 R_final-βKL)
-│   ├── value target 用 R_t = A_t + V_t
-│   └── advantage 标准化 (A-mean)/std
-└── 超参默认
-    ├── lr=8e-8, clip_epsilon=0.1, vf_coef=0.5, kl_coef=0.02
-    ├── update_old_actor_freq=4, save_interval=10
-    └── max_seq_len=66, max_gen_len=1536, batch_size=2</code></pre>
+<div class="markmap">---
+markmap:
+  initialExpandLevel: 2
+  spacingVertical: 18
+  spacingHorizontal: 90
+  maxWidth: 220
+---
+# Minimind PPO
+## 数据
+### rlaif-mini.jsonl (1万条 SFT 摘录, assistant="空")
+### RLAIFDataset.__getitem__ 返回 {prompt, answer} 字符串(不 token 化)
+## 四模型
+### Actor (可训练, SFT 初始化, 最终产出)
+### Old Actor (阶段冻结, 每4step同步, 重要性采样分母)
+### Reference (永久冻结, SFT 快照, KL 锚点)
+### Critic (可训练, lm_head→Linear(h,1), 热启动自 SFT)
+## 外置 Reward Model
+### InternLM2-1.8B-Reward (冻结, score clip [-3,3])
+## ppo_train_epoch 10 阶段
+## 1. 编码 (left padding)
+## 2. Rollout (no_grad generate → gen_out [B,P+R])
+## 3. Reward (calculate_rewards: 格式+标记+RM, 推理模式 answer 加权)
+## 4. Critic 前向 → values [B] (取最后有效 token)
+## 5. Advantage = rewards - values.detach()  [one-step, 无 GAE]
+## 6. Actor/Old/Ref 三路前向 (log_softmax+gather+final_mask+sum)
+## 7. Loss = policy_clip + vf_coef*value_mse + kl_coef*kl_ref + aux
+## 8. backward + clip_grad_norm + optimizer.step
+## 9. 每4step 同步 old_actor (state_dict→CPU→load)
+## 10. del 大张量防 OOM
+## 关键工程细节
+### final_mask 错位 -1 (用 B 预测 C 发生在 B 位置)
+### 两次 padding (左填充对齐生成 / 右填充维持矩形)
+### 采样不算 logp (OOM + 并行效率)
+### KL 用 (logp_a - logp_r).mean() 近似, 可能非负不保证
+## 标准版差异 (文中给出但未实现)
+### GAE: δ_t = r_t + γV_{t+1} - V_t; A_t = Σ(γλ)^l δ
+### token-level ratio 而非句子级
+### reward 分配到每 token (中间 -βKL, 末位 R_final-βKL)
+### value target 用 R_t = A_t + V_t
+### advantage 标准化 (A-mean)/std
+## 超参默认
+### lr=8e-8, clip_epsilon=0.1, vf_coef=0.5, kl_coef=0.02
+### update_old_actor_freq=4, save_interval=10
+### max_seq_len=66, max_gen_len=1536, batch_size=2</div><p class="markmap-hint">点击节点展开 / 折叠</p>
 <nav class="pager"><div class="pager__prev"><a href="12-dpo.html"><span class="pager__label">← 上一篇</span>算法:Minimind 的 DPO</a></div><div class="pager__next"><a href="14-grpo.html"><span class="pager__label">下一篇 →</span>算法:Minimind 的 GRPO 及其变体</a></div></nav>
 </article>
 </main>

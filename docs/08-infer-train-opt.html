@@ -70,39 +70,46 @@
 <div class="section-critique"><h2 id="sec-8">批判性批注</h2>
 <ul><li>作者坦诚自评"ai 味浓、没详细写、当目录用"——定位准确,但代价是深度不足:多数机制只给到"是什么+核心思想",缺乏推导、实测数据、工程踩坑;适合做索引,不适合作单一学习材料,须配合每项的专题资料。</li><li><strong>覆盖偏推理</strong>:标题写"推理与训练",实际只覆盖推理优化 + 训练目标改造(MLA/MTP/无辅助损失),完全未涉及主流分布式训练(数据并行/ZeRO/张量并行/流水线并行)、混合精度训练原理、梯度累积等训练侧核心。与同系列其他章节(训练篇)可能存在分工,但单看本文会训练向读者失望。</li><li><strong>案例数据需复核</strong>:Llama-2-70B KV Cache 在 BS=64/Seq=4K 下 335GB 的推算,按公式 $2×80×64×128×64×4096×2 ≈ 2.68TB$?与文中 335GB 数量级对不上(可能参数 H/D_h/层配置与实际不同),读者直接套公式易算错;此类关键数字应给完整代入过程。</li><li><strong>MoE 前后景描述过简</strong>:只点 Top-K 与 Router Collapse,未展开 Expert 容量因子、专家并行(EP)、Top-K=1 vs 2 的延迟/质量权衡,作为"扩展法则捷径"的论述偏口号。</li><li><strong>量化部分偏老</strong>:FP4/Blackwell 已进入实际部署期,但仅作"即将推出"表述;且未提及最常用的 GGUF/AWQ 在 Ollama/llama.cpp 生态的实际落地形态,工程参考价值打折。</li><li><strong>vLLM vs TRT-LLM 结论略武断</strong>:称 vLLM 为"最主流选择",但在固定负载/超低延迟企业场景 TRT-LLM 仍强;且未提 SGLang、LMDeploy 等近期高性能引擎,时效性可补。</li><li><strong>投机解码"无损"表述需谨慎</strong>:Rejection Sampling 在<strong>特定条件</strong>下(连续分布 + 正确归一化)无损;离散化实现 + 草稿/目标分布差距大时,接受率与加速比会退化,不应简单等同于"总能无损加速"。</li><li><strong>训练-推理一体化被浪漫化</strong>:DeepSeek MTP/MLA 确实是典范,但作者未点明其对训练成本的额外开销、工程复杂度与对基础架构的强依赖,读起来略像宣传。</li></ul>
 </div><h2 id="sec-9">笇内小思维导图(mermaid 或缩进树)</h2>
-<pre><code>LLM 推理与训练优化
-├─ 物理瓶颈
-│  ├─ Prefill: 计算墙(FLOPS) → 优化计算
-│  └─ Decode:  存储墙(HBM 带宽, 计算强度低) → 优化显存/带宽
-├─ 四大支柱 + 架构/量化
-│  ├─ 注意力架构
-│  │  ├─ MHA(标准)
-│  │  ├─ MQA(共享1组KV, H×压缩, 损性能)
-│  │  ├─ GQA(分组共享, Llama黄金标准, G=8)
-│  │  └─ MLA(低秩压缩潜向量 c_KV + 解耦RoPE, 仅5-10% MHA, DeepSeek)
-│  ├─ 内核级
-│  │  ├─ FlashAttention(Tiling+Recomputation, IO O(N²)→O(N); V2序列并行; V3 TMA/WGMMA异步)
-│  │  └─ FlashDecoding(Split-K并行+归约; ++ 异步Softmax/扁平GEMM, 8×)
-│  ├─ 系统级显存
-│  │  ├─ PagedAttention(块表+非连续+CoW, 浪费&lt;4%)
-│  │  └─ Continuous Batching(迭代级调度, 无Padding, 10-20×)
-│  ├─ 推理加速
-│  │  ├─ Speculative Decoding(Draft-Verify, Rejection Sampling无损)
-│  │  ├─ Medusa(多预测头+Tree Attention)
-│  │  ├─ EAGLE(特征层外推, 接受率更高)
-│  │  └─ DeepSeek MTP(训练-推理一体化, 1.8×)
-│  ├─ 架构
-│  │  ├─ MoE(Top-K稀疏激活; Router Collapse → DeepSeek无辅助损失Bias调节)
-│  │  └─ Mamba/Jamba(SSM O(N), Transformer+Mamba+MoE混合, 256K)
-│  └─ 量化
-│     ├─ GPTQ(W4A16 Weight-Only, Hessian补偿)
-│     ├─ AWQ(保留1%大激活权重FP16)
-│     ├─ SmoothQuant(迁移到权重, W8A8全链路INT8)
-│     └─ FP8(H100 E4M3/E5M2) / FP4(Blackwell B200)
-└─ 三大洞察
-   ├─ 瓶颈动态(Prefill算/Decode带宽)
-   ├─ 显存即吞吐(省显存→更大Batch)
-   └─ 训练服务于推理(MLA/MTP)</code></pre>
+<div class="markmap">---
+markmap:
+  initialExpandLevel: 2
+  spacingVertical: 18
+  spacingHorizontal: 90
+  maxWidth: 220
+---
+# LLM 推理与训练优化
+## 物理瓶颈
+### Prefill: 计算墙(FLOPS) → 优化计算
+### Decode:  存储墙(HBM 带宽, 计算强度低) → 优化显存/带宽
+## 四大支柱 + 架构/量化
+### 注意力架构
+- MHA(标准)
+- MQA(共享1组KV, H×压缩, 损性能)
+- GQA(分组共享, Llama黄金标准, G=8)
+- MLA(低秩压缩潜向量 c_KV + 解耦RoPE, 仅5-10% MHA, DeepSeek)
+### 内核级
+- FlashAttention(Tiling+Recomputation, IO O(N²)→O(N); V2序列并行; V3 TMA/WGMMA异步)
+- FlashDecoding(Split-K并行+归约; ++ 异步Softmax/扁平GEMM, 8×)
+### 系统级显存
+- PagedAttention(块表+非连续+CoW, 浪费&lt;4%)
+- Continuous Batching(迭代级调度, 无Padding, 10-20×)
+### 推理加速
+- Speculative Decoding(Draft-Verify, Rejection Sampling无损)
+- Medusa(多预测头+Tree Attention)
+- EAGLE(特征层外推, 接受率更高)
+- DeepSeek MTP(训练-推理一体化, 1.8×)
+### 架构
+- MoE(Top-K稀疏激活; Router Collapse → DeepSeek无辅助损失Bias调节)
+- Mamba/Jamba(SSM O(N), Transformer+Mamba+MoE混合, 256K)
+### 量化
+### GPTQ(W4A16 Weight-Only, Hessian补偿)
+### AWQ(保留1%大激活权重FP16)
+### SmoothQuant(迁移到权重, W8A8全链路INT8)
+### FP8(H100 E4M3/E5M2) / FP4(Blackwell B200)
+## 三大洞察
+### 瓶颈动态(Prefill算/Decode带宽)
+### 显存即吞吐(省显存→更大Batch)
+### 训练服务于推理(MLA/MTP)</div><p class="markmap-hint">点击节点展开 / 折叠</p>
 <nav class="pager"><div class="pager__prev"><a href="07-assemble.html"><span class="pager__label">← 上一篇</span>架构:超级拼装(搭建自己的大模型)</a></div><div class="pager__next"><a href="09-rl-overview.html"><span class="pager__label">下一篇 →</span>算法:大模型强化学习算法概览</a></div></nav>
 </article>
 </main>

@@ -94,38 +94,45 @@
 <div class="section-critique"><h2 id="sec-20">批判性批注</h2>
 <ul><li><strong>"RoPE 理论上支持无限长度"与"外推必崩"的张力未充分解释</strong> —— 文中既称 RoPE 频率连续可延展,又承认超训练长度即 PPL 爆炸,但未点明根因是"非线性 Softmax 对未见旋转角度的敏感",只归为 OOD 略显笼统;其实 RoPE 数学上确实周期可延,崩点在 Attention 的非线性放大。</li><li><strong>"分布语义=Embedding 公理"的循环风险</strong> —— 把 Firth 假设当作"公理化",但共现统计→几何邻近的证明依赖 Skip-gram/CBOW 的特定目标,现代 LLM 的 Embedding 是端到端任务驱动的,未必严格对应分布语义;作者未区分预训练词向量与 LLM 端到端 Embedding。</li><li><strong>YaRN 温度公式是经验拟合而非理论推导</strong> —— $\sqrt{1/t}=0.1\ln(s)+1$ 作者也承认是"大量实验拟合",文中却冠以"热力学修正""熵理论"的深刻命名,理论包装偏重,实际是工程调参。</li><li><strong>M-RoPE "三段各 d/3" 缺少消融依据</strong> —— 作者称"极其优雅",但为何均分三段而非按模态重要性加权,未给实验支撑;时空维度其实不对称(时间帧数远少于空间像素),均分可能次优。</li><li><strong>DeepSeek 解耦 RoPE 的代价被淡化</strong> —— 只讲"Score 相加"的优势,未提解耦带来的额外参数与潜在 Content/Position 信息割裂风险。</li><li><strong>ALiBi"无法融入 KV Cache"说法略绝对</strong> —— ALiBi 的 bias 是 query-key 距离函数,推理时仍可在 score 上加偏置,KV Cache 可存 Key,真正不友好的是 bias 依赖动态距离;表述可更精确。</li><li><strong>minimind 代码的 <code>attn_factor</code> 默认 1.0</strong> —— 即默认未启用温度缩放,YaRN 的关键一环在示例代码里其实是空转,读者照抄会漏掉熵修正。</li><li><strong>未涉及 RoPE 的已知缺陷</strong> —— 如"长距离旋转相位混叠""低频维度旋转不足导致外推失效"已提,但"高频维度在 NTK 下仍可能 OOD 的边界情形"未充分讨论。</li></ul>
 </div><h2 id="sec-21">篇内小思维导图</h2>
-<pre><code>Embedding 与位置编码
-├── Embedding (语义几何)
-│   ├── 离散 ID → 稠密向量 (V×D 查表)
-│   ├── 分布语义假设 (Firth) → 共现驱动邻近
-│   ├── 线性子结构 (King-Man+Woman≈Queen)
-│   └── 局限:位置无关 (词袋无法区分语序)
-├── 位置编码演进
-│   ├── APE 绝对
-│   │   ├── 正弦 (多尺度时钟, 加法注入, 可线性变换)
-│   │   └── 可学习 (GPT-2/BERT, 无法外推)
-│   ├── RPE 相对
-│   │   ├── 偏置相加 (Shaw/T5 对数分桶)
-│   │   └── ALiBi (Score-=m|i-j|, 外推之王但限长依赖)
-│   └── RoPE 旋转 ← 现代主流
-├── RoPE
-│   ├── 复数域: q·e^{imθ} → 内积只剩 (m-n) 平移不变
-│   ├── 分块对角矩阵 (d/2 个 2D 子空间, θ_j=base^{-2j/d})
-│   ├── 多级时钟隐喻 (秒针敏近/时针保远)
-│   ├── 长程自然衰减 + KV Cache 完美
-│   └── 外推故障 → 需 NTK/YaRN
-├── 长上下文扩展
-│   ├── 线性内插 PI (m/s, 解PPL但损高频分辨率)
-│   ├── NTK-Aware (base change, 高频不插/低频强插, zero-shot)
-│   ├── 动态 NTK (按 L_current 动态 s)
-│   └── YaRN ← 集大成
-│       ├── NTK-by-parts (三频段斜坡 γ)
-│       └── 温度缩放 (√(1/t)=0.1 ln(s)+1, 修正熵漂移)
-└── 工程实践 (2024-2026)
-    ├── Llama 3 高Theta (base=5e5, 预训即学超长依赖)
-    ├── Mistral SWA+RoPE (感受野线性增长)
-    ├── M-RoPE (时间/高/宽 三段, 多模态时空统一)
-    └── DeepSeek-V2 解耦RoPE (Content压缩+RoPE不压缩, MLA兼容)</code></pre>
+<div class="markmap">---
+markmap:
+  initialExpandLevel: 2
+  spacingVertical: 18
+  spacingHorizontal: 90
+  maxWidth: 220
+---
+# Embedding 与位置编码
+## Embedding (语义几何)
+### 离散 ID → 稠密向量 (V×D 查表)
+### 分布语义假设 (Firth) → 共现驱动邻近
+### 线性子结构 (King-Man+Woman≈Queen)
+### 局限:位置无关 (词袋无法区分语序)
+## 位置编码演进
+### APE 绝对
+- 正弦 (多尺度时钟, 加法注入, 可线性变换)
+- 可学习 (GPT-2/BERT, 无法外推)
+### RPE 相对
+- 偏置相加 (Shaw/T5 对数分桶)
+- ALiBi (Score-=m|i-j|, 外推之王但限长依赖)
+### RoPE 旋转 ← 现代主流
+## RoPE
+### 复数域: q·e^{imθ} → 内积只剩 (m-n) 平移不变
+### 分块对角矩阵 (d/2 个 2D 子空间, θ_j=base^{-2j/d})
+### 多级时钟隐喻 (秒针敏近/时针保远)
+### 长程自然衰减 + KV Cache 完美
+### 外推故障 → 需 NTK/YaRN
+## 长上下文扩展
+### 线性内插 PI (m/s, 解PPL但损高频分辨率)
+### NTK-Aware (base change, 高频不插/低频强插, zero-shot)
+### 动态 NTK (按 L_current 动态 s)
+### YaRN ← 集大成
+- NTK-by-parts (三频段斜坡 γ)
+- 温度缩放 (√(1/t)=0.1 ln(s)+1, 修正熵漂移)
+## 工程实践 (2024-2026)
+### Llama 3 高Theta (base=5e5, 预训即学超长依赖)
+### Mistral SWA+RoPE (感受野线性增长)
+### M-RoPE (时间/高/宽 三段, 多模态时空统一)
+### DeepSeek-V2 解耦RoPE (Content压缩+RoPE不压缩, MLA兼容)</div><p class="markmap-hint">点击节点展开 / 折叠</p>
 <nav class="pager"><div class="pager__prev"><a href="02-design.html"><span class="pager__label">← 上一篇</span>基石:Minimind 的设计目录</a></div><div class="pager__next"><a href="04-norm.html"><span class="pager__label">下一篇 →</span>架构:归一化技术(原理、演进与前沿)</a></div></nav>
 </article>
 </main>

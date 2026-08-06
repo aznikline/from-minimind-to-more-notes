@@ -77,30 +77,37 @@
 <div class="section-critique"><h2 id="sec-8">批判性批注</h2>
 <ul><li><strong>特征码硬编码脆弱</strong>：<code>'assistant\n'</code>/<code>'\n'</code> 强依赖 ChatML 具体渲染，且无运行时校验；换 tokenizer/template 即静默失效（loss=0）。可加 assert：训练前统计非 -100 的 label 占比，过低即报错。</li><li><strong>截断风险</strong>：<code>input_ids[:max_length]</code> 直接截断，可能把多轮对话切在 user 段中间，导致该轮 assistant 段缺失或 mask 错位；未做"按对话边界截断"的保护。</li><li><strong>单轮线性扫描 O(n)</strong>：小模型够用，但超长序列可优化为 KMP/预记录区间。</li><li><strong>未讨论 LoRA</strong>：标题 full\_sft 暗示全参数，但未对比 LoRA，读者需自行补足。</li><li><strong>超参缺乏解释</strong>：<code>lr=1e-6</code>、<code>epochs=2</code>、<code>grad_clip=1.0</code> 是经验值，未给来源/消融。</li><li><strong>作者 RL 思考略单薄</strong>：仅引一篇论文即下"RL 只提升采样效率"结论，样本偏少；但作为启发式提醒（"对 RL 认识有限"）有价值。</li><li><strong>亮点</strong>：调试代码、风险提示、DDP/compile 取模细节、半精度落盘——工程严谨度高于多数教程。</li></ul>
 </div><h2 id="sec-9">篇内小思维导图（缩进树）</h2>
-<pre><code>SFT
-├── 训练框架 train_full_sft.py（与 Pretrain 同构）
-│   ├── 梯度累加：loss / accumulation_steps
-│   ├── 梯度裁剪：clip_grad_norm_(1.0)
-│   ├── 混合精度：bfloat16 + GradScaler
-│   ├── 动态 lr：get_lr(warmup+cosine)
-│   └── 落盘：half().cpu()，DDP 取 .module / compile 取 _orig_mod
-├── 数据灵魂 lm_dataset.py
-│   ├── 懒加载 load_dataset（内存映射）
-│   ├── create_chat_prompt：apply_chat_template 压扁多轮
-│   ├── 截断 + pad_token_id 补齐
-│   └── generate_labels（核心 mask）
-│       ├── 全置 -100
-│       ├── 命中 bos_id（assistant\n）→ 找回复区间
-│       ├── 命中 eos_id（\n）→ 解除 mask（label=input_ids）
-│       └── 多轮循环
-├── 三大对比
-│   ├── Pretrain：全 token 算 loss
-│   ├── SFT：只 assistant 算 loss
-│   └── full SFT vs LoRA：全参 vs 低秩 adapter（本文件仅 full）
-└── 作者延伸
-    ├── SFT=模仿标准答案
-    ├── RL=尝试与反馈（PPO/DPO/GRPO）
-    └── RL 边界论文：只提升采样效率，非真正"学会"</code></pre>
+<div class="markmap">---
+markmap:
+  initialExpandLevel: 2
+  spacingVertical: 18
+  spacingHorizontal: 90
+  maxWidth: 220
+---
+# SFT
+## 训练框架 train_full_sft.py（与 Pretrain 同构）
+### 梯度累加：loss / accumulation_steps
+### 梯度裁剪：clip_grad_norm_(1.0)
+### 混合精度：bfloat16 + GradScaler
+### 动态 lr：get_lr(warmup+cosine)
+### 落盘：half().cpu()，DDP 取 .module / compile 取 _orig_mod
+## 数据灵魂 lm_dataset.py
+### 懒加载 load_dataset（内存映射）
+### create_chat_prompt：apply_chat_template 压扁多轮
+### 截断 + pad_token_id 补齐
+### generate_labels（核心 mask）
+- 全置 -100
+- 命中 bos_id（assistant\n）→ 找回复区间
+- 命中 eos_id（\n）→ 解除 mask（label=input_ids）
+- 多轮循环
+## 三大对比
+### Pretrain：全 token 算 loss
+### SFT：只 assistant 算 loss
+### full SFT vs LoRA：全参 vs 低秩 adapter（本文件仅 full）
+## 作者延伸
+### SFT=模仿标准答案
+### RL=尝试与反馈（PPO/DPO/GRPO）
+### RL 边界论文：只提升采样效率，非真正"学会"</div><p class="markmap-hint">点击节点展开 / 折叠</p>
 <nav class="pager"><div class="pager__prev"><a href="10-pretrain.html"><span class="pager__label">← 上一篇</span>算法:Minimind 的 Pretrain</a></div><div class="pager__next"><a href="12-dpo.html"><span class="pager__label">下一篇 →</span>算法:Minimind 的 DPO</a></div></nav>
 </article>
 </main>
