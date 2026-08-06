@@ -142,7 +142,7 @@ footer {
 .reader-head .lead { color: var(--muted); font-size: 1.02rem; margin: 0.3rem 0 0; line-height: 1.65; }
 
 /* ---------- 正文 prose ---------- */
-.prose { max-width: var(--measure); }
+.prose { max-width: var(--measure); overflow-x: hidden; }
 .prose h2 {
   font-size: 1.3rem; font-weight: 500; margin: 2.6rem 0 1rem;
   border-bottom: 1px solid var(--border-soft);
@@ -207,8 +207,15 @@ footer {
 @media (max-width: 760px) { .prose .markmap { height: 380px; } }
 
 /* ---------- LaTeX ---------- */
-.prose .katex-display { margin: 1.2rem 0; overflow-x: auto; overflow-y: hidden; padding: 0.3rem 0; }
+.prose .katex-display { margin: 1.2rem 0; overflow-x: auto; overflow-y: hidden; padding: 0.3rem 0; max-width: 100%; box-sizing: border-box; display: block; }
+.prose .katex-display > .katex { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+/* 行内 KaTeX(含 mtable 等)在窄屏可能超出,允许其自身横滚而不撑破页面 */
+.prose :not(.katex-display) > .katex { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: baseline; }
 .prose .katex { font-size: 1.04em; color: var(--fg-strong); }
+/* prose 内任何直接子块最小宽 0,允许溢出元素自身滚动而非撑破页面 */
+.prose > * { min-width: 0; }
+.prose pre, .prose .katex-display, .prose table { overflow-x: auto; max-width: 100%; }
+.prose p { overflow-wrap: anywhere; }
 
 /* ---------- 批判性批注 ---------- */
 .prose .section-critique {
